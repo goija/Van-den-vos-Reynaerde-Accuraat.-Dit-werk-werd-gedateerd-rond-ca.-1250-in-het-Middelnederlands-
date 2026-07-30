@@ -1,0 +1,67 @@
+// --- 7. WEBSOCKET SIGNALERING (HET BELSCRIPT) ---
+
+// Vul hier het IP-adres in van de machine waarop signaling_server.py draait
+// Bijv: 'ws://192.168.1.50:8765' (of 'wss://' als je SSL gebruikt)
+const ws = new WebSocket('ws://JOUW_SERVER_IP:8765'); 
+
+ws.onopen = () => {
+    console.log("Verbonden met de Python signaleringsserver.");
+};
+
+ws.onmessage = async (message) => {
+    const data = JSON.parse(message.data);
+
+    if (!peerConnection) initWebRTC();
+
+    // 1. Ontvang een oproep (Offer) van een ander apparaat
+    if (data.type === 'offer') {
+        console.log("Oproep ontvangen, antwoord genereren...");
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        // Stuur het antwoord terug
+        ws.send(JSON.stringify({ type: 'answer', answer: answer }));
+    }
+
+    // 2. Ontvang het antwoord (Answer) op een uitgaande oproep
+    if (data.type === 'answer') {
+        console.log("Antwoord ontvangen, verbinding opbouwen...");
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    }
+
+    // 3. Ontvang netwerkpaden (ICE Candidates)
+    if (data.type === 'ice-candidate') {
+        try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (e) {
+            console.error("Fout bij toevoegen ICE candidate", e);
+        }
+    }
+};
+
+// Vang lokale netwerkpaden op en stuur ze naar de server
+function verzendIceCandidates() {
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            ws.send(JSON.stringify({
+                type: 'ice-candidate',
+                candidate: event.candidate
+            }));
+        }
+    };
+}
+
+// Uitgaande oproep starten
+document.getElementById('callBtn').addEventListener('click', async () => {
+    if (!peerConnection) initWebRTC();
+    verzendIceCandidates(); // Start luisteren naar netwerkpaden
+
+    // Maak een WebRTC Offer (de daadwerkelijke bel-actie)
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    
+    // Verzend de Offer naar de signaleringsserver
+    ws.send(JSON.stringify({ type: 'offer', offer: offer }));
+    console.log("Oproep verzonden.");
+});
