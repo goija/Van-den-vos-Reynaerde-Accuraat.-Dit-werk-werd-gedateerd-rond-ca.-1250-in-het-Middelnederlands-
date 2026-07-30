@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC & Middelnederlands Communicatieknooppunt</title>
+    <style>
+        body { font-family: monospace; background: #121212; color: #e0e0e0; padding: 20px; }
+        h1, h2, h3 { color: #ffffff; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .panel { background: #1e1e1e; padding: 15px; border: 1px solid #444; border-radius: 5px; }
+        video { width: 100%; background: #000; border: 1px solid #555; margin-bottom: 10px; }
+        button, input, select { background: #333; color: #fff; border: 1px solid #555; padding: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+        button:hover { background: #444; }
+        label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em; }
+        #chatBox { height: 150px; overflow-y: auto; border: 1px solid #555; padding: 10px; background: #000; margin-bottom: 10px; }
+        .middelnederlands { color: #d4af37; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <h1>Decentraal WebRTC Communicatieknooppunt</h1>
+
+    <div class="grid">
+        <!-- A/V Streams & Geavanceerde Video Protocollen -->
+        <div class="panel">
+            <h2>Video Transceiver & Protocollen</h2>
+            <video id="localVideo" autoplay muted playsinline></video>
+            <video id="remoteVideo" autoplay playsinline></video>
+            
+            <label for="videoSource">Bron Protocol:</label>
+            <select id="videoSource">
+                <option value="camera">Lokale Camera (MediaStream)</option>
+                <option value="screen">Schermdeling (DisplayMedia)</option>
+            </select>
+
+            <label for="codecSelect">RTP Codec Voorkeur:</label>
+            <select id="codecSelect">
+                <option value="default">Systeem Standaard</option>
+                <option value="video/VP8">VP8 (Lage latentie)</option>
+                <option value="video/VP9">VP9 (Hoge compressie)</option>
+                <option value="video/H264">H.264 (Hardware acceleratie)</option>
+                <option value="video/AV1">AV1 (Next-gen efficiëntie)</option>
+            </select>
+
+            <label for="resolutionSelect">Video Resolutie (Constraints):</label>
+            <select id="resolutionSelect">
+                <option value="480">480p (SD)</option>
+                <option value="720" selected>720p (HD)</option>
+                <option value="1080">1080p (FHD)</option>
+            </select>
+
+            <button id="applyVideoSettingsBtn">Start Streams & Pas Protocollen Toe</button>
+        </div>
+
+        <!-- Voice Recorder -->
+        <div class="panel">
+            <h2>Spraakopname & Afspeelmachine</h2>
+            <button id="recordBtn">Start Opname</button>
+            <audio id="audioPlayback" controls style="width: 100%; margin-top: 10px;"></audio>
+            <button id="sendAudioBtn" disabled>Verzend Audio Blob via DataChannel</button>
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- Documenten & Protocollen -->
+        <div class="panel">
+            <h2>Bestandsprotocollen (PDF / JSON)</h2>
+            <input type="file" id="fileInput" accept="application/pdf, application/json">
+            <button id="sendFileBtn">Verzend Bestand (Base64)</button>
+            <div id="fileStatus" style="font-size: 0.9em; color: #888; margin-top: 5px;">Geen bestand geselecteerd.</div>
+        </div>
+
+        <!-- Tekst & Vertaling -->
+        <div class="panel">
+            <h2>Tekst & Middelnederlandse Vertaling</h2>
+            <div id="chatBox"></div>
+            <input type="text" id="messageInput" placeholder="Typ een bericht...">
+            <button id="sendMessageBtn">Vertaal & Verzend</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. MIDDELNEDERLANDS VERTAALSCRIPT ---
+        const mnlLexicon = {
+            "koning": "coninc", "ik": "ic", "zijn": "sijn", "klooster": "clooster",
+            "hebzucht": "giericheit", "schijnheiligheid": "huichelrie", "priester": "clerc",
+            "adel": "here", "dier": "dier", "vos": "reynaerde", "wolf": "isengrijn",
+            "beer": "bruun", "boer": "dorper", "list": "schalc", "stad": "stede",
+            "vrouw": "vrouwe", "goed": "goet", "kwaad": "quaet"
+        };
+
+        function vertaalNaarMiddelnederlands(tekst) {
+            let vertaling = tekst.toLowerCase();
+            for (const [modern, mnl] of Object.entries(mnlLexicon)) {
+                const regex = new RegExp(`\\b${modern}\\b`, 'gi');
+                vertaling = vertaling.replace(regex, mnl);
+            }
+            return vertaling;
+        }
+
+        // --- 2. WEBRTC & DATACHANNELS ARCHITECTUUR ---
+        let peerConnection;
+        let dataChannel;
+        let localStream;
+        let videoTrack;
+        const config = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] };
+
+        function formatPayload(type, payload, meta = {}) {
+            return JSON.stringify({ protocol: type, data: payload, meta: meta, timestamp: Date.now() });
+        }
+
+        function initWebRTC() {
+            peerConnection = new RTCPeerConnection(config);
+            
+            dataChannel = peerConnection.createDataChannel("communicatieKanaal");
+            setupDataChannel(dataChannel);
+            
+            peerConnection.ondatachannel = (event) => {
+                const receiveChannel = event.channel;
+                setupDataChannel(receiveChannel);
+            };
+
+            peerConnection.ontrack = (event) => {
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+        }
+
+        function setupDataChannel(channel) {
+            channel.onopen = () => console.log("DataChannel Open");
+            channel.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                verwerkInkomendProtocol(message);
+            };
+        }
+
+        function verwerkInkomendProtocol(message) {
+            const chatBox = document.getElementById('chatBox');
+            if (message.protocol === 'TEXT_MNL') {
+                chatBox.innerHTML += `<p><strong>Remote:</strong> <span class="middelnederlands">${message.data}</span></p>`;
+            } else if (message.protocol === 'FILE_PDF' || message.protocol === 'FILE_JSON') {
+                chatBox.innerHTML += `<p><strong>Bestand ontvangen:</strong> ${message.meta.name}</p>`;
+            } else if (message.protocol === 'AUDIO_BLOB') {
+                chatBox.innerHTML += `<p><strong>Spraakbericht ontvangen.</strong></p>`;
+                const audioBlob = dataURItoBlob(message.data);
+                document.getElementById('audioPlayback').src = URL.createObjectURL(audioBlob);
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // --- 3. VIDEO PROTOCOLLEN & CODECS ---
+        document.getElementById('applyVideoSettingsBtn').addEventListener('click', async () => {
+            const source = document.getElementById('videoSource').value;
+            const resolution = parseInt(document.getElementById('resolutionSelect').value);
+            const preferredCodec = document.getElementById('codecSelect').value;
+
+            try {
+                const videoConstraints = {
+                    width: { ideal: resolution === 1080 ? 1920 : (resolution === 720 ? 1280 : 854) },
+                    height: { ideal: resolution }
+                };
+
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+
+                if (source === 'camera') {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: true });
+                } else if (source === 'screen') {
+                    localStream = await navigator.mediaDevices.getDisplayMedia({ video: videoConstraints, audio: true });
+                }
+
+                document.getElementById('localVideo').srcObject = localStream;
+                videoTrack = localStream.getVideoTracks()[0];
+
+                if (!peerConnection) initWebRTC();
+
+                const senders = peerConnection.getSenders();
+                const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+
+                if (videoSender) {
+                    videoSender.replaceTrack(videoTrack);
+                } else {
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                }
+
+                if (preferredCodec !== 'default') {
+                    forceerRtpCodec(preferredCodec);
+                }
+
+            } catch (err) {
+                console.error("Fout bij het toepassen van videoprotocollen:", err);
+            }
+        });
+
+        function forceerRtpCodec(mimeType) {
+            if (!peerConnection) return;
+            const capabilities = RTCRtpReceiver.getCapabilities('video');
+            if (!capabilities || !capabilities.codecs) return;
+
+            const selectedCodecs = capabilities.codecs.filter(c => c.mimeType === mimeType);
+            if (selectedCodecs.length === 0) return;
+
+            const transceivers = peerConnection.getTransceivers();
+            transceivers.forEach(transceiver => {
+                if (transceiver.receiver.track.kind === 'video') {
+                    try {
+                        transceiver.setCodecPreferences(selectedCodecs);
+                        console.log(`Codec ingesteld op: ${mimeType}`);
+                    } catch (e) {
+                        console.error("Kan codec niet instellen:", e);
+                    }
+                }
+            });
+        }
+
+        // --- 4. VOICE OPNAME MACHINE ---
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedAudioBlob;
+        const recordBtn = document.getElementById('recordBtn');
+        const sendAudioBtn = document.getElementById('sendAudioBtn');
+
+        recordBtn.addEventListener('click', async () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                recordBtn.innerText = "Start Opname";
+            } else {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    document.getElementById('audioPlayback').src = URL.createObjectURL(recordedAudioBlob);
+                    sendAudioBtn.disabled = false;
+                };
+                
+                mediaRecorder.start();
+                recordBtn.innerText = "Stop Opname";
+            }
+        });
+
+        sendAudioBtn.addEventListener('click', () => {
+            if (!recordedAudioBlob) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const payload = formatPayload('AUDIO_BLOB', e.target.result);
+                if(dataChannel && dataChannel.readyState === 'open') {
+                    dataChannel.send(payload);
+                    document.getElementById('chatBox').innerHTML += `<p><strong>Jij:</strong> Spraakbericht verzonden.</p>`;
+                }
+            };
+            reader.readAsDataURL(recordedAudioBlob);
+        });
+
+        // --- 5. BESTANDEN (PDF/JSON) ---
+        document.getElementById('sendFileBtn').addEventListener('click', () => {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) return;
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const type = file.type.includes('pdf') ? 'FILE_PDF' : 'FILE_JSON';
+                const payload = formatPayload(type, e.target.result, { name: file.name, size: file.size });
+                
+                if(dataChannel && dataChannel.readyState === 'open') {
+                    dataChannel.send(payload);
+                    document.getElementById('fileStatus').innerText = `Verzonden: ${file.name}`;
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // --- 6. CHAT & VERZENDING ---
+        document.getElementById('sendMessageBtn').addEventListener('click', () => {
+            const input = document.getElementById('messageInput').value;
+            if (!input) return;
+            
+            const mnlTekst = vertaalNaarMiddelnederlands(input);
+            document.getElementById('chatBox').innerHTML += `<p><strong>Jij:</strong> <span class="middelnederlands">${mnlTekst}</span></p>`;
+            
+            if (dataChannel && dataChannel.readyState === 'open') {
+                const payload = formatPayload('TEXT_MNL', mnlTekst);
+                dataChannel.send(payload);
+            }
+            document.getElementById('messageInput').value = '';
+        });
+
+        function dataURItoBlob(dataURI) {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
+
+        // Init op start om de datachannels klaar te zetten
+        initWebRTC();
+    </script>
+</body>
+</html>
