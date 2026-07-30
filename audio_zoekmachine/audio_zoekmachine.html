@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bronnenboek Zoekmachine: Kloosters, Relieken & Reynaert</title>
+    <style>
+        body { font-family: monospace; background: #121212; color: #e0e0e0; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1, h2 { color: #ffffff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .search-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        input[type="text"] { flex-grow: 1; padding: 12px; background: #1e1e1e; color: #fff; border: 1px solid #555; font-size: 16px; }
+        button { background: #333; color: #fff; border: 1px solid #555; padding: 12px 20px; cursor: pointer; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        button:hover { background: #444; }
+        .recording { background: #8b0000; color: white; border-color: #ff0000; }
+        
+        /* Resultaten weergave */
+        .result-card { background: #1e1e1e; border: 1px solid #444; border-left: 4px solid #d4af37; padding: 15px; margin-bottom: 15px; border-radius: 3px; }
+        .result-title { font-weight: bold; font-size: 1.1em; color: #d4af37; margin-bottom: 5px; }
+        .result-category { font-size: 0.8em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .highlight { background-color: rgba(212, 175, 55, 0.3); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Archief Zoekmachine</h1>
+    <p>Doorzoek het volledige bronnenboek via tekst of spraakherkenning.</p>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Zoek op 'Blauwe Camer', 'Sainte-Chapelle', 'Reynaert'...">
+        <button id="textSearchBtn">Zoeken</button>
+        <button id="audioSearchBtn">🎤 Spraak (Audio Zoeken)</button>
+    </div>
+
+    <div id="statusMessage" style="color: #aaa; margin-bottom: 15px; font-style: italic;"></div>
+    <div id="resultsContainer"></div>
+
+    <script>
+        // --- 1. HET LOKALE BRONNENBOEK (JSON DATABASE) ---
+        const bronnenboek = [
+            {
+                id: 1,
+                categorie: "Kloostergeschiedenis",
+                titel: "Sint-Catharinadal & De Blauwe Camer",
+                content: "De stichting en ontwikkeling van kloosters zoals Sint-Catharinadal, gevestigd in slotje de Blauwe Camer in Oosterhout. Kenmerkend voor hun overlevingsstrategie tijdens de reformatie."
+            },
+            {
+                id: 2,
+                categorie: "Kloostergeschiedenis",
+                titel: "St. Gerlach en Sint-Michielsabdij",
+                content: "Historische ontwikkeling van St. Gerlach in Houthem en de invloedrijke Sint-Michielsabdij in Antwerpen."
+            },
+            {
+                id: 3,
+                categorie: "Relieken en Verering",
+                titel: "De Doornenkroon & Sainte-Chapelle",
+                content: "De architectuur rondom heilige relieken. Lodewijk IX bouwde de Sainte-Chapelle in Parijs specifiek om de relieken van de doornenkroon te huisvesten."
+            },
+            {
+                id: 4,
+                categorie: "Relieken en Verering",
+                titel: "Ons Heren Tack (Amersfoort)",
+                content: "Lokale religieuze tradities en processies, waaronder de verering van de reliek 'Ons Heren Tack' in de Amersfoortse Sint-Joriskerk."
+            },
+            {
+                id: 5,
+                categorie: "Volksliteratuur",
+                titel: "Reynaert de Vos & Dierenepiek",
+                content: "De rijke literaire context, ontstaansgeschiedenis en drukgeschiedenis van Reynaert de Vos. De tekst fungeert als een satirische spiegel van de middeleeuwse standenmaatschappij."
+            },
+            {
+                id: 6,
+                categorie: "Volksliteratuur",
+                titel: "Middeleeuwse Beestenboeken",
+                content: "De link tussen literaire vossenepiek en middeleeuwse bestiaria (beestenboeken), waarin dieren menselijke ondeugden vertegenwoordigden."
+            }
+        ];
+
+        // --- 2. TEKST ZOEKMACHINE LOGICA ---
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const statusMessage = document.getElementById('statusMessage');
+
+        function voerZoekopdrachtUit(query) {
+            resultsContainer.innerHTML = ''; // Maak vorige resultaten leeg
+            const zoekTerm = query.toLowerCase().trim();
+            
+            if (!zoekTerm) {
+                statusMessage.innerText = "Voer een zoekterm in.";
+                return;
+            }
+
+            const resultaten = bronnenboek.filter(item => 
+                item.titel.toLowerCase().includes(zoekTerm) || 
+                item.content.toLowerCase().includes(zoekTerm) ||
+                item.categorie.toLowerCase().includes(zoekTerm)
+            );
+
+            if (resultaten.length === 0) {
+                statusMessage.innerText = `Geen resultaten gevonden voor "${query}".`;
+                return;
+            }
+
+            statusMessage.innerText = `${resultaten.length} resultaat/resultaten gevonden voor "${query}".`;
+
+            resultaten.forEach(item => {
+                // Markeer de zoekterm in de tekst
+                const regex = new RegExp(`(${zoekTerm})`, 'gi');
+                const gemarkeerdeContent = item.content.replace(regex, '<span class="highlight">$1</span>');
+                const gemarkeerdeTitel = item.titel.replace(regex, '<span class="highlight">$1</span>');
+
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-category">${item.categorie}</div>
+                    <div class="result-title">${gemarkeerdeTitel}</div>
+                    <div>${gemarkeerdeContent}</div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        document.getElementById('textSearchBtn').addEventListener('click', () => {
+            voerZoekopdrachtUit(searchInput.value);
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') voerZoekopdrachtUit(searchInput.value);
+        });
+
+        // --- 3. AUDIO ZOEKMACHINE (WEB SPEECH API) ---
+        const audioSearchBtn = document.getElementById('audioSearchBtn');
+        
+        // Controleer op browser ondersteuning
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'nl-NL'; // Taal instellen op Nederlands
+            recognition.interimResults = false; // Alleen definitieve resultaten tonen
+            recognition.maxAlternatives = 1;
+
+            audioSearchBtn.addEventListener('click', () => {
+                recognition.start();
+            });
+
+            recognition.onstart = () => {
+                audioSearchBtn.classList.add('recording');
+                audioSearchBtn.innerText = "🎙️ Luisteren...";
+                statusMessage.innerText = "Spreek nu uw zoekterm in...";
+            };
+
+            recognition.onresult = (event) => {
+                const gesprokenTekst = event.results[0][0].transcript;
+                searchInput.value = gesprokenTekst;
+                voerZoekopdrachtUit(gesprokenTekst);
+            };
+
+            recognition.onerror = (event) => {
+                statusMessage.innerText = `Fout bij spraakherkenning: ${event.error}`;
+                resetAudioButton();
+            };
+
+            recognition.onend = () => {
+                resetAudioButton();
+            };
+
+            function resetAudioButton() {
+                audioSearchBtn.classList.remove('recording');
+                audioSearchBtn.innerText = "🎤 Spraak (Audio Zoeken)";
+            }
+        } else {
+            audioSearchBtn.disabled = true;
+            audioSearchBtn.innerText = "❌ Spraak niet ondersteund";
+            statusMessage.innerText = "Uw browser ondersteunt de Web Speech API niet.";
+        }
+    </script>
+</body>
+</html>
