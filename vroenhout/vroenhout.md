@@ -1,6 +1,3 @@
- Conversation with Gemini
-
-md Uw samenvatting legt inderdaad feilloos de verbinding tussen de locatie van de stichting en het politieke speelveld van die tijd. Echter, als we de historische bronnen over de definitieve verdeling van het 'Land van Breda' in 1287 er in detail op naslaan, blijkt de juridische werkelijkheid rondom Vroenhout nòg complexer en fascinerender te zijn.
 
 Deze complexiteit verklaart direct waarom de zusters in 1295 specifiek naar Breda vluchtten, en niet naar Bergen op Zoom.
 
