@@ -1,0 +1,375 @@
+0 HEAD
+1 SOUR GENCOMPRO
+2 NAME Genealogie Export Raso van Gaveren
+2 VERS 5.5.1
+1 SUBM @SUBM1@
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+
+0 @SUBM1@ SUBM
+1 NAME Genealogist
+
+0 @I1@ INDI
+1 NAME Raso I /van Gaveren/
+2 GIVN Raso I
+3 SURN van Gaveren
+1 SEX M
+1 DEAT
+2 DATE ABT 1000
+1 FAMS @F1@
+
+0 @I2@ INDI
+1 NAME Maria /van Harelbeke/
+2 GIVN Maria
+3 SURN van Harelbeke
+1 SEX F
+1 FAMS @F1@
+
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+
+0 @I3@ INDI
+1 NAME Raso II /van Gaveren/
+2 GIVN Raso II
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1062
+1 DEAT
+2 DATE 1100
+1 FAMS @F2@
+1 FAMC @F1@
+
+0 @I4@ INDI
+1 NAME Catharina /van Peteghem-Cysoing/
+2 GIVN Catharina
+3 SURN van Peteghem-Cysoing
+1 SEX F
+1 FAMS @F2@
+
+0 @F2@ FAM
+1 HUSB @I3@
+1 WIFE @I4@
+1 CHIL @I5@
+
+0 @I5@ INDI
+1 NAME Raso III /van Gaveren/
+2 GIVN Raso III
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1088
+1 DEAT
+2 DATE 1149
+1 FAMS @F3@
+1 FAMC @F2@
+
+0 @I6@ INDI
+1 NAME Elisabeth /van Gent/
+2 GIVN Elisabeth
+3 SURN van Gent
+1 SEX F
+1 FAMS @F3@
+
+0 @F3@ FAM
+1 HUSB @I5@
+1 WIFE @I6@
+1 CHIL @I7@
+
+0 @I7@ INDI
+1 NAME Raso IV /van Gaveren/
+2 GIVN Raso IV
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1112
+1 DEAT
+2 DATE 1150
+1 FAMS @F4@
+1 FAMC @F3@
+
+0 @I8@ INDI
+1 NAME Eva /van Chièvres/
+2 GIVN Eva
+3 SURN van Chièvres
+1 SEX F
+1 FAMS @F4@
+
+0 @F4@ FAM
+1 HUSB @I7@
+1 WIFE @I8@
+1 CHIL @I9@
+
+0 @I9@ INDI
+1 NAME Raso V /van Gaveren/
+2 GIVN Raso V
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1140
+1 DEAT
+2 DATE 1206
+1 FAMS @F5@
+1 FAMC @F4@
+
+0 @I10@ INDI
+1 NAME Mathilde /van Liedekerke/
+2 GIVN Mathilde
+3 SURN van Liedekerke
+1 SEX F
+1 FAMS @F5@
+
+0 @F5@ FAM
+1 HUSB @I9@
+1 WIFE @I10@
+1 CHIL @I11@
+
+0 @I11@ INDI
+1 NAME Raso VI /van Gaveren/
+2 GIVN Raso VI
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1160
+1 DEAT
+2 DATE 1217
+1 FAMS @F6@
+1 FAMC @F5@
+
+0 @I12@ INDI
+1 NAME Clarissa /van Eskaerde/
+2 GIVN Clarissa
+3 SURN van Eskaerde
+1 SEX F
+1 FAMS @F6@
+
+0 @F6@ FAM
+1 HUSB @I11@
+1 WIFE @I12@
+1 CHIL @I13@
+
+0 @I13@ INDI
+1 NAME Raso VII /van Gaveren/
+2 GIVN Raso VII
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1180
+1 DEAT
+2 DATE 1241
+1 FAMS @F7@
+1 FAMC @F6@
+
+0 @I14@ INDI
+1 NAME Sophie /van Breda/
+2 GIVN Sophie
+3 SURN van Breda
+1 BIRT
+2 DATE 1189
+1 DEAT
+2 DATE 1232
+1 FAMS @F7@
+
+0 @F7@ FAM
+1 HUSB @I13@
+1 WIFE @I14@
+1 MARR
+2 DATE 1208
+1 CHIL @I15@
+
+0 @I15@ INDI
+1 NAME Raso VIII /van Gaveren/
+2 GIVN Raso VIII
+3 SURN van Gaveren
+1 SEX M
+1 BIRT
+2 DATE 1215
+1 DEAT
+2 DATE 1291
+1 FAMS @F8@
+1 FAMC @F7@
+
+0 @I16@ INDI
+1 NAME Margaretha /van Enghien/
+2 GIVN Margaretha
+3 SURN van Enghien
+1 BIRT
+2 DATE 1225
+1 DEAT
+2 DATE 1260
+1 FAMS @F8@
+
+0 @F8@ FAM
+1 HUSB @I15@
+1 WIFE @I16@
+1 CHIL @I17@
+
+0 @I17@ INDI
+1 NAME Raso XI /van Gaveren/
+2 GIVN Raso XI
+3 SURN van Gaveren
+2 NICK Raso II (Heer van Breda)
+1 SEX M
+1 BIRT
+2 DATE 1241
+1 DEAT
+2 DATE DEC 1306
+1 FAMS @F9@
+1 FAMS @F10@
+1 FAMC @F8@
+
+0 @I18@ INDI
+1 NAME Alice /van Boenlaer/
+2 GIVN Alice
+3 SURN van Boenlaer
+2 NICK Aleide van Horn
+1 BIRT
+2 DATE ABT 1265
+1 DEAT
+2 DATE 24 NOV 1294
+1 FAMS @F9@
+
+0 @I19@ INDI
+1 NAME Hadewij /van Strijen/
+2 GIVN Hadewij
+3 SURN van Strijen
+2 NICK Herwig
+1 FAMS @F10@
+
+0 @F9@ FAM
+1 HUSB @I17@
+1 WIFE @I18@
+1 MARR
+2 DATE ABT 1272
+1 CHIL @I20@
+1 CHIL @I21@
+1 CHIL @I22@
+1 CHIL @I23@
+1 CHIL @I24@
+
+0 @F10@ FAM
+1 HUSB @I17@
+1 WIFE @I19@
+1 MARR
+2 DATE 1300
+
+0 @I20@ INDI
+1 NAME Raso III /van Gaveren/
+2 GIVN Raso III
+3 SURN van Gaveren
+2 NICK Raso X
+1 SEX M
+1 BIRT
+2 DATE 1270
+1 DEAT
+2 DATE 29 APR 1313
+1 FAMC @F9@
+
+0 @I21@ INDI
+1 NAME Filips /van Liedekerke/
+2 GIVN Filips
+3 SURN van Liedekerke
+1 SEX M
+1 BIRT
+2 DATE 1270
+1 DEAT
+2 DATE 7 JUL 1320
+1 FAMC @F9@
+
+0 @I22@ INDI
+1 NAME Segebertus /van Ulvenhout/
+2 GIVN Segebertus
+3 SURN van Ulvenhout
+1 SEX M
+1 BIRT
+2 DATE 1275
+1 DEAT
+2 DATE 1329
+1 FAMS @F11@
+1 FAMC @F9@
+
+0 @I25@ INDI
+1 NAME Beatrix /NN/
+2 GIVN Beatrix
+3 SURN NN
+1 SEX F
+1 FAMS @F11@
+
+0 @F11@ FAM
+1 HUSB @I22@
+1 WIFE @I25@
+1 CHIL @I26@
+
+0 @I23@ INDI
+1 NAME Zeger /van Boenlaer/
+2 GIVN Zeger
+3 SURN van Boenlaer
+1 SEX M
+1 FAMC @F9@
+
+0 @I24@ INDI
+1 NAME Catharina /van Gaveren/
+2 GIVN Catharina
+3 SURN van Gaveren
+1 SEX F
+1 BIRT
+2 DATE 1280
+1 FAMC @F9@
+
+0 @I26@ INDI
+1 NAME Jan /van Ulvenhout/
+2 GIVN Jan
+3 SURN van Ulvenhout
+1 SEX M
+1 BIRT
+2 DATE 1340
+1 FAMS @F12@
+1 FAMC @F11@
+
+0 @F12@ FAM
+1 HUSB @I26@
+1 CHIL @I27@
+
+0 @I27@ INDI
+1 NAME Sigebertus Jan /van Ulvenhout/
+2 GIVN Sigebertus Jan
+3 SURN van Ulvenhout
+1 SEX M
+1 BIRT
+2 DATE 1380
+1 FAMS @F13@
+1 FAMC @F12@
+
+0 @F13@ FAM
+1 HUSB @I27@
+1 CHIL @I28@
+
+0 @I28@ INDI
+1 NAME Jan Zebrechtsz /van Ulvenhout/
+2 GIVN Jan Zebrechtsz
+3 SURN van Ulvenhout
+1 SEX M
+1 BIRT
+2 DATE 1400
+1 FAMS @F14@
+1 FAMC @F13@
+
+0 @F14@ FAM
+1 HUSB @I28@
+1 CHIL @I29@
+
+0 @I29@ INDI
+1 NAME Peter Jans /Pier Styne/ van Ulvenhout
+2 GIVN Peter Jans
+3 SURN van Ulvenhout
+2 NICK Pier Styne
+1 SEX M
+1 BIRT
+2 DATE 1425
+1 FAMC @F14@
+
+0 TRLR
