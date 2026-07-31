@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekosysteem & Systeemontwikkeling Notebook</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --accent-hover: #79c0ff;
+            --border-color: #30363d;
+            --code-bg: #040d21;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+        }
+        h1 {
+            color: var(--accent-color);
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        .dorks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+            background: var(--code-bg);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        .dork-tag {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dork-tag:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+        }
+        .notebook-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .notebook-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 18px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .notebook-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        .card-title {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .card-meta {
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card-desc {
+            color: #b1bac4;
+            font-size: 0.95rem;
+        }
+        .sources-section {
+            margin-top: 30px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        .sources-section h3 {
+            color: var(--accent-color);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        ul.sources-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul.sources-list li {
+            margin-bottom: 8px;
+        }
+        ul.sources-list a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        ul.sources-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ekosysteem & Systeemontwikkeling Notebook</h1>
+        <p class="subtitle">Interactieve index voor gedecentraliseerde netwerken, datasoevereiniteit en ekosysteemhulpmiddelen</p>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Zoek op ekosysteem, protocol of structuur..." onkeyup="filterEntries()">
+        </div>
+
+        <div class="dorks-container">
+            <span style="align-self: center; font-size: 0.85rem; color: #8b949e; margin-right: 5px;">Snelle Dorks:</span>
+            <div class="dork-tag" onclick="applyDork('type:netwerken')">type:netwerken</div>
+            <div class="dork-tag" onclick="applyDork('type:architectuur')">type:architectuur</div>
+            <div class="dork-tag" onclick="applyDork('type:tools')">type:tools</div>
+            <div class="dork-tag" onclick="clearDorks()">[Reset Filter]</div>
+        </div>
+
+        <div class="notebook-grid" id="notebookGrid"></div>
+
+        <div class="sources-section">
+            <h3>Ekosysteem- en Ontwikkelingsbronnen</h3>
+            <ul class="sources-list">
+                <li><a href="https://matrix.org/" target="_blank">Matrix.org: Gedecentraliseerde communicatie-ekosystemen</a></li>
+                <li><a href="https://www.buildroot.org/" target="_blank">Buildroot: Ingebedde systemen en linux-ekosystemen</a></li>
+                <li><a href="https://webrtc.org/" target="_blank">WebRTC: Real-time netwerkprotocollen</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const entries = [
+            {
+                title: "Gedecentraliseerde Matrix-netwerken (Matrix Homeserver)",
+                meta: "Ekosysteem / Communicatie",
+                desc: "Zelfgehoste netwerkekosystemen die volledige digitale datasoevereiniteit en versleutelde datastromen garanderen.",
+                type: "netwerken"
+            },
+            {
+                title: "Minimale Linux-gateways (Buildroot)",
+                meta: "Architectuur / Systemen",
+                desc: "Aangepaste, lichtgewicht configuraties voor ingebedde systemen en socket-scripts voor ekosysteemknooppunten.",
+                type: "architectuur"
+            },
+            {
+                title: "WebRTC Data Channels & P2P-stacks",
+                meta: "Protocollen / Transport",
+                desc: "Real-time peer-to-peer-verbindingen en gedecentraliseerde kanalen rechtstreeks tussen knooppunten zonder tussenpersonen.",
+                type: "tools"
+            },
+            {
+                title: "VORTEX Bridge & Audiovisuele Dashboards",
+                meta: "Python / HTML Dashboard",
+                desc: "Hulpmiddelen gericht op modulair frequentiebeheer, audiosynthese en datavisualisatie voor het ekosysteem.",
+                type: "tools"
+            },
+            {
+                title: "18x13 Matrixraster-configuraties",
+                meta: "Gegevensstructuur / Modellering",
+                desc: "Geavanceerde rooststrukturen voor het berekenen van harmonische structuren, frequenties en datastromen.",
+                type: "architectuur"
+            },
+            {
+                title: "Digitale Soevereiniteit & Open-sourcetools",
+                meta: "Privacy / Protocol",
+                desc: "Open technologie-ekosystemen gebaseerd op eigen onderzoek en het bouwen van onafhankelijke infrastructuren.",
+                type: "netwerken"
+            }
+        ];
+
+        function displayEntries(data) {
+            const grid = document.getElementById('notebookGrid');
+            grid.innerHTML = '';
+            if (data.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #8b949e;">Geen zoekresultaten.</p>';
+                return;
+            }
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'notebook-card';
+                card.innerHTML = `
+                    <div class="card-title">${item.title}</div>
+                    <div class="card-meta">${item.meta}</div>
+                    <div class="card-desc">${item.desc}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterEntries() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = entries.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.desc.toLowerCase().includes(query) ||
+                item.meta.toLowerCase().includes(query)
+            );
+            displayEntries(filtered);
+        }
+
+        function applyDork(dork) {
+            const input = document.getElementById('searchInput');
+            if (dork === 'type:netwerken') {
+                displayEntries(entries.filter(i => i.type === 'netwerken'));
+                input.value = 'type:netwerken';
+            } else if (dork === 'type:architectuur') {
+                displayEntries(entries.filter(i => i.type === 'architectuur'));
+                input.value = 'type:architectuur';
+            } else if (dork === 'type:tools') {
+                displayEntries(entries.filter(i => i.type === 'tools'));
+                input.value = 'type:tools';
+            }
+        }
+
+        function clearDorks() {
+            document.getElementById('searchInput').value = '';
+            displayEntries(entries);
+        }
+
+        displayEntries(entries);
+    </script>
+</body>
+</html>
