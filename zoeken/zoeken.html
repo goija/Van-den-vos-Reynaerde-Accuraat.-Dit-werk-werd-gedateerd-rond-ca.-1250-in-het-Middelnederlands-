@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastodon Zoeken</title>
+    <style>
+        /* Mastodon Dark Theme Variabelen */
+        :root {
+            --bg-color: #282c37;
+            --column-bg: #313543;
+            --input-bg: #191b22;
+            --text-primary: #ffffff;
+            --text-secondary: #9baec8;
+            --accent-color: #606984;
+            --hover-bg: #393f4f;
+            --border-radius: 4px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        /* Container voor de zoekkolom */
+        .search-column {
+            background-color: var(--column-bg);
+            width: 100%;
+            max-width: 400px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Zoekbalk sectie */
+        .search-header {
+            padding: 15px;
+            background-color: var(--column-bg);
+            border-bottom: 1px solid var(--input-bg);
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: none;
+            color: var(--text-primary);
+            padding: 10px 10px 10px 35px;
+            border-radius: var(--border-radius);
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .search-options-btn {
+            background-color: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            transition: background-color 0.2s;
+        }
+
+        .search-options-btn:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        /* Recente zoekopdrachten sectie */
+        .recent-searches {
+            padding: 15px 0;
+        }
+
+        .section-title {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 0 15px 10px 15px;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .search-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .search-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .search-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .item-icon {
+            color: var(--accent-color);
+            margin-right: 15px;
+            font-size: 16px;
+        }
+
+        .item-text {
+            flex-grow: 1;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 50%;
+        }
+
+        .remove-btn:hover {
+            color: #ff5050;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="search-column">
+        <div class="search-header">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Zoeken" autocomplete="off">
+            </div>
+            <button class="search-options-btn" title="Zoekopties" onclick="alert('Zoekopties filterpaneel zou hier openen.')">
+                ⚙️
+            </button>
+        </div>
+
+        <div class="recent-searches">
+            <h2 class="section-title">Recente zoekopdrachten</h2>
+            <ul class="search-list">
+                <li class="search-item">
+                    <span class="item-icon">🕐</span>
+                    <span class="item-text">@eeelizaqueen_fennecqueen_feennec</span>
+                    <button class="remove-btn" title="Verwijderen uit geschiedenis" onclick="verwijderItem(this)">×</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Simpele functie om een recente zoekopdracht visueel te verwijderen
+        function verwijderItem(knop) {
+            // Stop de klik van het activeren van de hele rij
+            event.stopPropagation(); 
+            
+            // Verwijder het <li> element
+            const listItem = knop.closest('li');
+            listItem.style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
