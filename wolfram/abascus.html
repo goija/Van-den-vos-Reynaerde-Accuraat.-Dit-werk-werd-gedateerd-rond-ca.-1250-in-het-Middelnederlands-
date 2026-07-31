@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proto-Germaanse Woordenlijst & Zoekindex</title>
+    <style>
+        :root {
+            --bg-color: #121417;
+            --panel-bg: #1c2026;
+            --text-color: #e1e7ed;
+            --accent-color: #c59b27;
+            --accent-hover: #e0b034;
+            --border-color: #2f3640;
+            --code-bg: #262d37;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: var(--accent-color);
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #8b9bb4;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        .dorks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+            background: var(--code-bg);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        .dork-tag {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dork-tag:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+        }
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 15px;
+        }
+        .word-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .word-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        .proto-word {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        .dutch-meaning {
+            color: #b0c0d0;
+            font-size: 0.95rem;
+        }
+        .sources-section {
+            margin-top: 30px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        .sources-section h3 {
+            color: var(--accent-color);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        ul.sources-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul.sources-list li {
+            margin-bottom: 8px;
+        }
+        ul.sources-list a {
+            color: #61afef;
+            text-decoration: none;
+        }
+        ul.sources-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Proto-Germaanse Woordenlijst & Zoekindex</h1>
+        <p class="subtitle">Interactieve database met geavanceerde filters en zoekdorks</p>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Zoek op Proto-Germaans of Nederlands..." onkeyup="filterWords()">
+        </div>
+
+        <div class="dorks-container">
+            <span style="align-self: center; font-size: 0.85rem; color: #8b9bb4; margin-right: 5px;">Snelle Dorks:</span>
+            <div class="dork-tag" onclick="applyDork('type:werkwoord')">type:werkwoord</div>
+            <div class="dork-tag" onclick="applyDork('type:zelfstandig')">type:zelfstandig</div>
+            <div class="dork-tag" onclick="applyDork('len:kort')">len:kort (&lt;6 tekens)</div>
+            <div class="dork-tag" onclick="applyDork('letter:w')">letter:w</div>
+            <div class="dork-tag" onclick="clearDorks()">[Reset Filter]</div>
+        </div>
+
+        <div class="word-grid" id="wordGrid"></div>
+
+        <div class="sources-section">
+            <h3>Zoekbronnen & Referenties</h3>
+            <ul class="sources-list">
+                <li><a href="https://en.wiktionary.org/wiki/Category:Proto-Germanic_terms" target="_blank">Wiktionary: Proto-Germanic Terms Category</a></li>
+                <li><a href="https://lrc.la.utexas.edu/eieol/pgol/000" target="_blank">University of Texas at Austin: Proto-Germanic Online</a></li>
+                <li><a href="https://www.etymonline.com/" target="_blank">Online Etymology Dictionary</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const words = [
+            {proto: "Hēr", dutch: "Hier", type: "bijwoord"},
+            {proto: "standamiz", dutch: "Wij staan", type: "werkwoord"},
+            {proto: "wiz", dutch: "Wij", type: "voornaamwoord"},
+            {proto: "ainiz", dutch: "Eén", type: "telwoord"},
+            {proto: "folką", dutch: "Volk, stam", type: "zelfstandig"},
+            {proto: "iją", dutch: "En", type: "voegwoord"},
+            {proto: "wulþu", dutch: "Glorie, pracht", type: "zelfstandig"},
+            {proto: "jah", dutch: "En", type: "voegwoord"},
+            {proto: "awwō", dutch: "Ooi, schaap (of kudde)", type: "zelfstandig"},
+            {proto: "aihamiz", dutch: "Wij bezitten, hebben", type: "werkwoord"},
+            {proto: "þanā", dutch: "De, dien", type: "lidwoord"},
+            {proto: "aldōzaną", dutch: "Oudere, voorouders", type: "zelfstandig"},
+            {proto: "ansūz", dutch: "Goden, Ansen", type: "zelfstandig"},
+            {proto: "kraftiz", dutch: "Kracht, sterkte", type: "zelfstandig"},
+            {proto: "þai", dutch: "De, die", type: "aanwijzend"},
+            {proto: "gaþūlą", dutch: "Lotsbestemming, eenheid", type: "zelfstandig"},
+            {proto: "mēnōþōz", dutch: "Maanden", type: "zelfstandig"},
+            {proto: "wrandōnduz", dutch: "Wervelend, cirkelend", type: "bijvoeglijk"},
+            {proto: "wintrāz", dutch: "Winters", type: "zelfstandig"},
+            {proto: "ist", dutch: "Is", type: "werkwoord"},
+            {proto: "harduz", dutch: "Hard, streng", type: "bijvoeglijk"},
+            {proto: "sumarāz", dutch: "Zomers", type: "zelfstandig"},
+            {proto: "warmāz", dutch: "Warm", type: "bijvoeglijk"},
+            {proto: "sēyamiz", dutch: "Wij zaaien", type: "werkwoord"},
+            {proto: "haugizamiz", dutch: "Wij oogsten", type: "werkwoord"},
+            {proto: "huntsōyamiz", dutch: "Wij jagen", type: "werkwoord"},
+            {proto: "warjamiz", dutch: "Wij beschermen, weren", type: "werkwoord"},
+            {proto: "unsarōzaną", dutch: "Onze", type: "voornaamwoord"},
+            {proto: "hiwiską", dutch: "Huiszin, familie, huishouden", type: "zelfstandig"},
+            {proto: "Unsarōz", dutch: "Onze (nom. plur.)", type: "voornaamwoord"},
+            {proto: "hrtōnuz", dutch: "Harten", type: "zelfstandig"},
+            {proto: "sijamiz", dutch: "Wij zijn", type: "werkwoord"},
+            {proto: "starkōz", dutch: "Sterk", type: "bijvoeglijk"},
+            {proto: "gaistōz", dutch: "Geesten", type: "zelfstandig"},
+            {proto: "hwassai", dutch: "Scherp, fel", type: "bijvoeglijk"},
+            {proto: "libōmiz", dutch: "Wij leven", type: "werkwoord"},
+            {proto: "miþ", dutch: "Met", type: "voorzetsel"},
+            {proto: "erþā", dutch: "Aarde", type: "zelfstandig"},
+            {proto: "ni", dutch: "Niet", type: "bijwoord"},
+            {proto: "withra", dutch: "Tegen, weder", type: "voorzetsel"}
+        ];
+
+        function displayWords(data) {
+            const grid = document.getElementById('wordGrid');
+            grid.innerHTML = '';
+            if (data.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #8b9bb4;">Geen woorden gevonden.</p>';
+                return;
+            }
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'word-card';
+                card.innerHTML = `
+                    <div class="proto-word">${item.proto}</div>
+                    <div class="dutch-meaning">${item.dutch}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterWords() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = words.filter(item => 
+                item.proto.toLowerCase().includes(query) || 
+                item.dutch.toLowerCase().includes(query)
+            );
+            displayWords(filtered);
+        }
+
+        function applyDork(dork) {
+            const input = document.getElementById('searchInput');
+            if (dork === 'type:werkwoord') {
+                const filtered = words.filter(item => item.type === 'werkwoord');
+                displayWords(filtered);
+                input.value = 'type:werkwoord';
+            } else if (dork === 'type:zelfstandig') {
+                const filtered = words.filter(item => item.type === 'zelfstandig');
+                displayWords(filtered);
+                input.value = 'type:zelfstandig';
+            } else if (dork === 'len:kort') {
+                const filtered = words.filter(item => item.proto.length < 6);
+                displayWords(filtered);
+                input.value = 'len:kort';
+            } else if (dork === 'letter:w') {
+                const filtered = words.filter(item => item.proto.toLowerCase().startsWith('w'));
+                displayWords(filtered);
+                input.value = 'letter:w';
+            }
+        }
+
+        function clearDorks() {
+            document.getElementById('searchInput').value = '';
+            displayWords(words);
+        }
+
+        // Initieel tonen
+        displayWords(words);
+    </script>
+</body>
+</html>
