@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>La Trahison de la Tijd - Duale Tweehandige Matrix</title>
+    <style>
+        body {
+            background-color: #0f111a;
+            color: #c0c7d0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1a1e29;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 1px solid #2a3245;
+        }
+        h2 {
+            color: #4ac2eb;
+            margin-bottom: 10px;
+        }
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(13, 30px);
+            grid-template-rows: repeat(13, 30px);
+            gap: 4px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #242c3d;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #0f111a;
+        }
+        .cell.left-active {
+            background-color: #4ac2eb;
+            box-shadow: 0 0 6px #4ac2eb;
+        }
+        .cell.right-active {
+            background-color: #ff5370;
+            box-shadow: 0 0 6px #ff5370;
+        }
+        .cell.dual-active {
+            background-color: #ffcb6b;
+            box-shadow: 0 0 8px #ffcb6b;
+        }
+        .controls {
+            margin: 15px 0;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        label {
+            font-size: 13px;
+        }
+        input[type=range] {
+            width: 120px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>La Trahison de la Tijd</h2>
+    <p>Duale Tweehandige Modulo 21 Besturing</p>
+
+    <div class="controls">
+        <div>
+            <label>Linkerhand (Modulus A): <span id="valL">3</span></label><br>
+            <input type="range" id="rangeL" min="1" max="20" value="3" oninput="updateMatrix()">
+        </div>
+        <div>
+            <label>Rechterhand (Modulus B): <span id="valR">7</span></label><br>
+            <input type="range" id="rangeR" min="1" max="20" value="7" oninput="updateMatrix()">
+        </div>
+    </div>
+    
+    <div class="matrix-grid" id="matrixGrid"></div>
+
+    <div id="statsOutput" style="font-size: 13px; margin-top: 15px;"></div>
+</div>
+
+<script>
+    const matrixRijen = 13;
+    const matrixKolommen = 13;
+    const totaalCellen = matrixRijen * matrixKolommen; // 169
+
+    function updateMatrix() {
+        const modL = parseInt(document.getElementById('rangeL').value);
+        const modR = parseInt(document.getElementById('rangeR').value);
+        
+        document.getElementById('valL').innerText = modL;
+        document.getElementById('valR').innerText = modR;
+
+        const gridContainer = document.getElementById('matrixGrid');
+        gridContainer.innerHTML = '';
+
+        let dualCount = 0;
+
+        for (let i = 1; i <= matrixRijen; i++) {
+            for (let j = 1; j <= matrixKolommen; j++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+
+                const activeLeft = ((i * j) % modL === 0);
+                const activeRight = ((i + j) % modR === 0);
+
+                if (activeLeft && activeRight) {
+                    cell.classList.add('dual-active');
+                    cell.innerText = '1+';
+                    dualCount++;
+                } else if (activeLeft) {
+                    cell.classList.add('left-active');
+                    cell.innerText = 'L';
+                } else if (activeRight) {
+                    cell.classList.add('right-active');
+                    cell.innerText = 'R';
+                }
+
+                gridContainer.appendChild(cell);
+            }
+        }
+
+        document.getElementById('statsOutput').innerHTML = `
+            Matrix: 13 &times; 13 (${totaalCellen} cellen) | Gekruiste resonanties (Links/Rechts): ${dualCount}
+        `;
+    }
+
+    // Initialiseer direct
+    updateMatrix();
+</script>
+
+</body>
+</html>
