@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>La Trahison de la Tijd - Torsie & Modulo Dashboard</title>
+    <style>
+        body {
+            background-color: #0f111a;
+            color: #c0c7d0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1a1e29;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 1px solid #2a3245;
+            max-width: 600px;
+        }
+        h2 {
+            color: #4ac2eb;
+            margin-bottom: 5px;
+        }
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(13, 30px);
+            grid-template-rows: repeat(13, 30px);
+            gap: 4px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #242c3d;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #0f111a;
+        }
+        .cell.left-active {
+            background-color: #4ac2eb;
+            box-shadow: 0 0 6px #4ac2eb;
+        }
+        .cell.right-active {
+            background-color: #ff5370;
+            box-shadow: 0 0 6px #ff5370;
+        }
+        .cell.dual-active {
+            background-color: #ffcb6b;
+            box-shadow: 0 0 8px #ffcb6b;
+        }
+        .controls {
+            margin: 15px 0;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        input[type=range] {
+            width: 120px;
+        }
+        .calc-panel {
+            background: #131620;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            text-align: left;
+            border-left: 3px solid #ffcb6b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>La Trahison de la Tijd</h2>
+    <p style="font-size: 13px; color: #8f93a2;">Duale Tweehandige Modulo & Torsie Dashboard</p>
+
+    <div class="calc-panel">
+        <div><strong>Breukenreeks constante:</strong> <span id="fractionVal">36.01096</span></div>
+        <div><strong>Torsie berekening (1046 &times; 0.00781):</strong> <span id="torsionVal">8.16926</span></div>
+        <div><strong>Modulo Resonantie (234 mod 21):</strong> <span id="modResVal">3</span></div>
+    </div>
+
+    <div class="controls">
+        <div>
+            <label>Linkerhand (Mod L): <span id="valL">3</span></label><br>
+            <input type="range" id="rangeL" min="1" max="21" value="3" oninput="updateMatrix()">
+        </div>
+        <div>
+            <label>Rechterhand (Mod R): <span id="valR">21</span></label><br>
+            <input type="range" id="rangeR" min="1" max="21" value="21" oninput="updateMatrix()">
+        </div>
+    </div>
+    
+    <div class="matrix-grid" id="matrixGrid"></div>
+
+    <div id="statsOutput" style="font-size: 12px; margin-top: 10px;"></div>
+</div>
+
+<script>
+    const matrixRijen = 13;
+    const matrixKolommen = 13;
+    const totaalCellen = matrixRijen * matrixKolommen;
+
+    function updateMatrix() {
+        const modL = parseInt(document.getElementById('rangeL').value);
+        const modR = parseInt(document.getElementById('rangeR').value);
+        
+        document.getElementById('valL').innerText = modL;
+        document.getElementById('valR').innerText = modR;
+
+        const gridContainer = document.getElementById('matrixGrid');
+        gridContainer.innerHTML = '';
+
+        let dualCount = 0;
+
+        for (let i = 1; i <= matrixRijen; i++) {
+            for (let j = 1; j <= matrixKolommen; j++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+
+                const activeLeft = ((i * j) % modL === 0);
+                const activeRight = ((i + j) % modR === 0);
+
+                if (activeLeft && activeRight) {
+                    cell.classList.add('dual-active');
+                    cell.innerText = '1+';
+                    dualCount++;
+                } else if (activeLeft) {
+                    cell.classList.add('left-active');
+                    cell.innerText = 'L';
+                } else if (activeRight) {
+                    cell.classList.add('right-active');
+                    cell.innerText = 'R';
+                }
+
+                gridContainer.appendChild(cell);
+            }
+        }
+
+        document.getElementById('statsOutput').innerHTML = `
+            13 &times; 13 Raster (${totaalCellen} cellen) | Resonanties: ${dualCount}
+        `;
+    }
+
+    // Init direct
+    updateMatrix();
+</script>
+
+</body>
+</html>
