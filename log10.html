@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>VORTEX • Dual Vector Kompas (60° & 160°)</title>
+    <title>VORTEX • 13 Manen & Geometrisch Kompas</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -11,8 +11,8 @@
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --gold: #b8860b;
-            --accent-wood: #27ae60;
-            --accent-fire: #e74c3c;
+            --accent: #e74c3c;
+            --green: #27ae60;
         }
 
         *, *::before, *::after {
@@ -39,26 +39,26 @@
             padding: 25px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.4);
             text-align: center;
-            max-width: 420px;
+            max-width: 440px;
             width: 100%;
         }
 
         h1 {
             margin: 0 0 5px 0;
-            font-size: 15pt;
+            font-size: 14pt;
             color: var(--gold);
         }
 
         p {
             margin: 0 0 15px 0;
-            font-size: 9pt;
+            font-size: 8.5pt;
             color: var(--text-muted);
         }
 
         .compass-wrapper {
             position: relative;
-            width: 280px;
-            height: 280px;
+            width: 300px;
+            height: 300px;
             margin: 0 auto 15px auto;
             cursor: grab;
         }
@@ -117,17 +117,18 @@
             border: 1px solid var(--border-color);
             color: var(--text-main);
             line-height: 1.4;
+            text-align: left;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>VORTEX • Dual Vector Kompas</h1>
-    <p>Ternaire Modulatie met vaste hoeken (60° & 160°)</p>
+    <h1>VORTEX • 13 Manen & Geometrisch Kompas</h1>
+    <p>Vleermuis Maan van Doel (26 juli t/m 22 aug) • Solide Ruimte: 8.552 sr²</p>
 
     <div class="compass-wrapper" id="compassWrapper">
-        <canvas id="compassCanvas" width="280" height="280"></canvas>
+        <canvas id="compassCanvas" width="300" height="300"></canvas>
     </div>
 
     <div class="slider-wrapper">
@@ -135,14 +136,16 @@
     </div>
 
     <div class="controls">
-        <button onclick="setAngle(60)">Hoek 60° (+1)</button>
+        <button onclick="setAngle(60)">Hoek 60°</button>
         <button onclick="setAngle(160)">Hoek 160° (SSO)</button>
-        <button onclick="setAngle(-60)">Hoek -60° (-1)</button>
-        <button onclick="setAngle(-160)">Hoek -160°</button>
+        <button onclick="setAngle(181)">Hoek 181°</button>
+        <button onclick="setAngle(360)">360° (1 Maan)</button>
     </div>
 
     <div class="info-panel" id="infoText">
-        Totale Hoek: <strong>160°</strong> | Ternaire Stroom: +1 | 8.552 sr²
+        Datum: <strong>1 Aug</strong> (7e dag der maan)<br>
+        Totale Hoek: <strong>160°</strong> | Ternaire Stroom: +1<br>
+        Geometrie: 18x13 Rooster & 8.552 sr²
     </div>
 </div>
 
@@ -175,7 +178,7 @@
     function drawCompass(angle) {
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
-        const radius = 115;
+        const radius = 125;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -211,20 +214,20 @@
             ctx.fillText(ternaryVal, tx, ty);
         }
 
-        // Hulplijnen voor de specifieke hoeken 60° en 160°
+        // Hulplijnen voor specifieke hoeken 60° en 160°
         [60, 160].forEach((targetAngle, idx) => {
             const targetRad = (targetAngle - 90) * (Math.PI / 180);
-            const tx1 = cx + (radius - 35) * Math.cos(targetRad);
-            const ty1 = cy + (radius - 35) * Math.sin(targetRad);
+            const tx1 = cx + (radius - 40) * Math.cos(targetRad);
+            const ty1 = cy + (radius - 40) * Math.sin(targetRad);
             
-            ctx.strokeStyle = idx === 0 ? 'rgba(39, 174, 96, 0.5)' : 'rgba(231, 76, 60, 0.5)';
+            ctx.strokeStyle = idx === 0 ? 'rgba(39, 174, 96, 0.6)' : 'rgba(231, 76, 60, 0.6)';
             ctx.lineWidth = 1.5;
             ctx.setLineDash([2, 2]);
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.lineTo(tx1, ty1);
             ctx.stroke();
-            ctx.setLineDash([]); // Reset dash
+            ctx.setLineDash([]);
         });
 
         const effectiveAngle = ((angle % 360) + 360) % 360;
@@ -240,10 +243,14 @@
             ternarySymbol = "-1";
         }
 
+        // Bepaal fictieve kalenderdag op basis van hoek (26 juli t/m 22 aug)
+        let dayOffset = Math.floor((effectiveAngle / 360) * 28) + 1;
+        if (dayOffset > 28) dayOffset = 28;
+
         // Hoofdvector pijl
         const rad = (effectiveAngle - 90) * (Math.PI / 180);
-        const vx = cx + (radius - 45) * Math.cos(rad);
-        const vy = cy + (radius - 45) * Math.sin(rad);
+        const vx = cx + (radius - 50) * Math.cos(rad);
+        const vy = cy + (radius - 50) * Math.sin(rad);
 
         ctx.strokeStyle = '#e74c3c';
         ctx.fillStyle = '#e74c3c';
@@ -267,7 +274,10 @@
         ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
         ctx.fill();
 
-        infoText.innerHTML = `Totale Hoek: <strong>${Math.round(angle)}°</strong> | Omwenteling: ${revolutions} <br>Ternaire Code: [<strong>${ternarySymbol}</strong>] → ${ternaryState} | <strong>8.552 sr²</strong>`;
+        infoText.innerHTML = `Maan Dag Index: <strong>Dag ${dayOffset}</strong> (Vleermuis Maan)<br>` +
+                             `Totale Hoek: <strong>${Math.round(angle)}°</strong> | Omw: ${revolutions}<br>` +
+                             `Ternaire Code: [<strong>${ternarySymbol}</strong>] → ${ternaryState}<br>` +
+                             `Rooster: 18x13 | Solide Ruimte: <strong>8.552 sr²</strong>`;
     }
 
     function setAngle(angle) {
