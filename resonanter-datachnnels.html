@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>VORTEX • Sensornet Telemetrie (234 Matrix & 234 Hz)</title>
+    <title>VORTEX • Sensornet Telemetrie (234 Matrix & Golflengtes)</title>
     <style>
         :root {
             --bg-color: #050b14;
@@ -13,8 +13,8 @@
             --gold: #b8860b;
             --accent: #e74c3c;
             --webrtc: #2ecc71;
-            --sonic1: #3498db; /* 234 Hz (-234° / 126°) */
-            --sonic2: #e67e22; /* 110 Hz (234°) */
+            --sonic1: #3498db; /* 234 Hz */
+            --sonic2: #e67e22; /* 110 Hz */
             --sensor: #9b59b6;
         }
 
@@ -39,42 +39,44 @@
             padding: 25px;
             box-shadow: 0 12px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(46, 204, 113, 0.05);
             text-align: center;
-            max-width: 520px;
+            max-width: 560px;
             width: 100%;
         }
 
         h1 {
             margin: 0 0 5px 0;
-            font-size: 13pt;
+            font-size: 14pt;
             color: var(--gold);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         p {
-            margin: 0 0 15px 0;
+            margin: 0 0 20px 0;
             font-size: 8.5pt;
             color: var(--text-muted);
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .status-badge {
             background: rgba(51, 65, 85, 0.4);
-            padding: 8px;
-            border-radius: 4px;
+            padding: 10px;
+            border-radius: 6px;
             font-family: monospace;
-            font-size: 8.5pt;
+            font-size: 8pt;
             text-align: left;
+            border-left: 2px solid var(--border-color);
         }
         
-        .status-badge span { color: var(--gold); display: block; margin-top: 3px; font-size: 10pt; }
-        .status-badge .rtc-status { color: var(--webrtc); }
+        .status-badge span { color: var(--gold); display: block; margin-top: 4px; font-size: 11pt; }
+        .status-badge .rtc-status { color: var(--webrtc); font-size: 9pt; }
+        .status-badge .wave-status { color: var(--text-main); font-size: 10pt; }
 
         .compass-wrapper {
             position: relative;
@@ -111,13 +113,13 @@
             background: #000;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 10px;
-            height: 150px;
+            padding: 12px;
+            height: 160px;
             overflow-y: auto;
             text-align: left;
             font-family: monospace;
             font-size: 8pt;
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
         .terminal span.time { color: var(--text-muted); }
@@ -128,11 +130,11 @@
 <body>
 
 <div class="container">
-    <h1>VORTEX • 234 Resonantie Matrix</h1>
-    <p>18x13 Grid (234) | Solide Ruimte: 8.552 sr² | WebRTC Actief</p>
+    <h1>VORTEX • 234 Fysieke Matrix</h1>
+    <p>18x13 Grid | Solide Ruimte: 8.552 sr² | Golflengte Integratie (v=343 m/s)</p>
     
     <div class="dashboard-grid">
-        <div class="status-badge">
+        <div class="status-badge" style="border-color: var(--gold);">
             Vector Hoek
             <span id="lblAngle">234.9°</span>
         </div>
@@ -140,8 +142,12 @@
             Cyclus (Max 18)
             <span id="lblRev">0 / 18</span>
         </div>
-        <div class="status-badge" style="grid-column: 1 / 3;">
-            Data Channel
+        <div class="status-badge" style="border-color: var(--sonic1);">
+            Actieve Golflengte (λ)
+            <span id="lblWave" class="wave-status">Rust</span>
+        </div>
+        <div class="status-badge" style="grid-column: 1 / 4; border-color: var(--webrtc);">
+            Data Channel: VORTEX_TELEMETRY
             <span id="lblRTC" class="rtc-status">Initialiseren...</span>
         </div>
     </div>
@@ -155,7 +161,8 @@
     </div>
 
     <div class="terminal" id="rtcTerminal">
-        <span class="time">[Systeem]</span> Web Audio API gereed (Frequentiecorrectie: 234 Hz).<br>
+        <span class="time">[Systeem]</span> Web Audio API gereed.<br>
+        <span class="time">[Fysica]</span> Omgevingsvariabele geluidssnelheid: 343 m/s.<br>
         <span class="time">[Systeem]</span> Sensornet grid (18x13) rendering gestart.<br>
     </div>
 </div>
@@ -169,12 +176,14 @@
     const lblAngle = document.getElementById('lblAngle');
     const lblRev = document.getElementById('lblRev');
     const lblRTC = document.getElementById('lblRTC');
+    const lblWave = document.getElementById('lblWave');
 
     let currentAngle = 234.9;
     let isDragging = false;
     let lastMouseAngle = null;
     const MAX_ANGLE = 6480; 
     let packetCount = 0;
+    const GELUIDSSNELHEID = 343; // m/s
 
     // --- WEBRTC DATA CHANNELS ---
     let localConn, remoteConn, sendChannel, receiveChannel;
@@ -197,7 +206,7 @@
             receiveChannel = e.channel;
             receiveChannel.onmessage = event => {
                 const data = JSON.parse(event.data);
-                if (packetCount % 5 === 0) {
+                if (packetCount % 5 === 0 && !data.trigger) {
                     logTerminal(`RX Pakket [${data.id}]: Hoek ${data.angle}°, Cyclus ${data.cyclus}`, "rx");
                 }
             };
@@ -212,7 +221,7 @@
         await localConn.setRemoteDescription(answer);
     }
 
-    function sendTelemetry(trigger = null) {
+    function sendTelemetry(trigger = null, extraData = {}) {
         if (sendChannel && sendChannel.readyState === 'open') {
             packetCount++;
             const payload = {
@@ -222,12 +231,13 @@
                 space: "8.552 sr2",
                 angle: currentAngle.toFixed(1),
                 cyclus: Math.floor(Math.abs(currentAngle) / 360),
-                event: trigger || "STREAM"
+                trigger: trigger,
+                ...extraData
             };
             sendChannel.send(JSON.stringify(payload));
 
             if (trigger) {
-                logTerminal(`TX TRIGGER: ${trigger}`, "tx");
+                logTerminal(`TX TRIGGER: ${trigger} | λ = ${extraData.golflengte_m}m`, "tx");
             }
         }
     }
@@ -307,7 +317,7 @@
         });
     }
 
-    function drawMarker(cx, cy, radius, angleDeg, color, label) {
+    function drawMarker(cx, cy, radius, angleDeg, color, label, waveLabel) {
         const rad = (angleDeg - 90) * (Math.PI / 180);
         const x1 = cx + (radius - 25) * Math.cos(rad);
         const y1 = cy + (radius - 25) * Math.sin(rad);
@@ -328,6 +338,13 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, tx, ty);
+
+        // Voeg golflengte label toe aan canvas
+        const twx = cx + (radius + 32) * Math.cos(rad);
+        const twy = cy + (radius + 32) * Math.sin(rad);
+        ctx.fillStyle = 'var(--text-muted)';
+        ctx.font = '8px monospace';
+        ctx.fillText(waveLabel, twx, twy);
     }
 
     function render(time) {
@@ -353,9 +370,8 @@
             ctx.stroke();
         }
 
-        // Visuele markers op -234° (126°) en 234°
-        drawMarker(cx, cy, radius, 126, 'var(--sonic1)', '-234°'); 
-        drawMarker(cx, cy, radius, 234, 'var(--sonic2)', '234°');
+        drawMarker(cx, cy, radius, 126, 'var(--sonic1)', '-234°', 'λ=1.47m'); 
+        drawMarker(cx, cy, radius, 234, 'var(--sonic2)', '234°', 'λ=3.12m');
 
         const effectiveAngle = ((currentAngle % 360) + 360) % 360;
 
@@ -414,24 +430,30 @@
         lblAngle.innerText = currentAngle.toFixed(1) + '°';
         lblRev.innerText = Math.floor(Math.abs(currentAngle) / 360) + ' / 18';
 
-        // Wiskundige detectie voor passage over 126° (-234°) en 234°
         let cross126 = Math.floor((tempPrev - 126) / 360) !== Math.floor((tempCurr - 126) / 360);
         let cross234 = Math.floor((tempPrev - 234) / 360) !== Math.floor((tempCurr - 234) / 360);
 
         if (cross126) {
-            playTone(234, 'sine'); // Aangepast naar 234 Hz
-            sendTelemetry("SONIC_PULSE_234HZ_NEG234");
-            logTerminal(`► RESONANTIE: As -234° (126°) gepasseerd → <strong style="color:var(--sonic1)">234 Hz</strong>`);
+            const freq = 234;
+            const waveLen = (GELUIDSSNELHEID / freq).toFixed(2);
+            playTone(freq, 'sine');
+            lblWave.innerHTML = `<span style="color:var(--sonic1)">${waveLen} m (${freq}Hz)</span>`;
+            sendTelemetry("SONIC_PULSE_234HZ", { frequentie_hz: freq, golflengte_m: waveLen });
+            logTerminal(`► RESONANTIE: -234° as (126°) → <strong style="color:var(--sonic1)">234 Hz | Fysieke lengte: ${waveLen}m</strong>`);
         }
+        
         if (cross234) {
-            playTone(110, 'triangle');
-            sendTelemetry("SONIC_PULSE_110HZ_POS234");
-            logTerminal(`► RESONANTIE: As 234° gepasseerd → <strong style="color:var(--sonic2)">110 Hz</strong>`);
+            const freq = 110;
+            const waveLen = (GELUIDSSNELHEID / freq).toFixed(2);
+            playTone(freq, 'triangle');
+            lblWave.innerHTML = `<span style="color:var(--sonic2)">${waveLen} m (${freq}Hz)</span>`;
+            sendTelemetry("SONIC_PULSE_110HZ", { frequentie_hz: freq, golflengte_m: waveLen });
+            logTerminal(`► RESONANTIE: 234° as → <strong style="color:var(--sonic2)">110 Hz | Fysieke lengte: ${waveLen}m</strong>`);
         }
 
         if (!throttleTimer) {
             throttleTimer = setTimeout(() => {
-                sendTelemetry();
+                sendTelemetry(); // Reguliere stream zonder trigger
                 throttleTimer = null;
             }, 100);
         }
