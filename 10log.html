@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>VORTEX • WebRTC Pegasus Telemetry</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --gold: #b8860b;
+            --accent: #e74c3c;
+            --pegasus: #9b59b6;
+            --webrtc: #2ecc71;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 14pt;
+            color: var(--gold);
+        }
+
+        p {
+            margin: 0 0 15px 0;
+            font-size: 8.5pt;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: rgba(51, 65, 85, 0.5);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 9pt;
+            color: var(--webrtc);
+            border: 1px solid var(--webrtc);
+            margin-bottom: 15px;
+        }
+
+        .compass-wrapper {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 15px auto;
+            cursor: grab;
+        }
+
+        .compass-wrapper:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            background: var(--bg-color);
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+            display: block;
+        }
+
+        .slider-wrapper { margin-bottom: 20px; }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            accent-color: var(--pegasus);
+        }
+
+        .terminal {
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            height: 120px;
+            overflow-y: auto;
+            text-align: left;
+            font-family: monospace;
+            font-size: 8pt;
+            color: var(--webrtc);
+            margin-top: 15px;
+        }
+
+        .terminal span { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>VORTEX • WebRTC Telemetrie</h1>
+    <p>Pegasus Vector | 18x13 Rooster | 8.552 sr²</p>
+    
+    <div id="rtcStatus" class="status-badge">WebRTC: Verbinden...</div>
+
+    <div class="compass-wrapper" id="compassWrapper">
+        <canvas id="compassCanvas" width="300" height="300"></canvas>
+    </div>
+
+    <div class="slider-wrapper">
+        <input type="range" id="angleRange" min="-360" max="360" value="234.9" step="0.1">
+    </div>
+
+    <div class="terminal" id="rtcTerminal">
+        <span>[Systeem] Initialisatie WebRTC peer-to-peer verbinding...</span><br>
+    </div>
+</div>
+
+<script>
+    // --- UI & Canvas Setup ---
+    const rangeInput = document.getElementById('angleRange');
+    const canvas = document.getElementById('compassCanvas');
+    const ctx = canvas.getContext('2d');
+    const terminal = document.getElementById('rtcTerminal');
+    const rtcStatus = document.getElementById('rtcStatus');
+    const compassWrapper = document.getElementById('compassWrapper');
+
+    let currentAngle = 234.9;
+    let isDragging = false;
+    let lastMouseAngle = null;
+
+    // --- WebRTC Logic ---
+    let localConnection;
+    let remoteConnection;
+    let sendChannel;
+    let receiveChannel;
+
+    function logTerminal(msg, isData = false) {
+        const time = new Date().toISOString().substring(11, 23);
+        const color = isData ? 'var(--pegasus)' : 'var(--text-muted)';
+        terminal.innerHTML = `<span style="color:${color}">[${time}]</span> ${msg}<br>` + terminal.innerHTML;
+    }
+
+    async function setupWebRTC() {
+        // Configuratie (gebruikt standaard loopback voor demonstratie)
+        const configuration = {}; 
+        
+        localConnection = new RTCPeerConnection(configuration);
+        remoteConnection = new RTCPeerConnection(configuration);
+
+        // ICE Candidates uitwisselen (Signaling simulatie)
+        localConnection.onicecandidate = e => {
+            if (e.candidate) remoteConnection.addIceCandidate(e.candidate);
+        };
+        remoteConnection.onicecandidate = e => {
+            if (e.candidate) localConnection.addIceCandidate(e.candidate);
+        };
+
+        // Data Channel aanmaken (VORTEX_DATA)
+        sendChannel = localConnection.createDataChannel("VORTEX_DATA");
+        sendChannel.onopen = () => {
+            rtcStatus.innerText = "WebRTC: Gekoppeld (Data Channel Open)";
+            rtcStatus.style.borderColor = "var(--webrtc)";
+            logTerminal("Data channel 'VORTEX_DATA' is geopend.");
+            broadcastState(); // Stuur initiële status
+        };
+        sendChannel.onclose = () => logTerminal("Data channel gesloten.");
+
+        // Ontvanger setup
+        remoteConnection.ondatachannel = e => {
+            receiveChannel = e.channel;
+            receiveChannel.onmessage = e => {
+                const data = JSON.parse(e.data);
+                logTerminal(`RX_DATA: Hoek ${data.angle}°, Ternair: ${data.ternaryCode}`, true);
+            };
+        };
+
+        // SDP Offer/Answer onderhandeling
+        try {
+            const offer = await localConnection.createOffer();
+            await localConnection.setLocalDescription(offer);
+            await remoteConnection.setRemoteDescription(offer);
+            
+            const answer = await remoteConnection.createAnswer();
+            await remoteConnection.setLocalDescription(answer);
+            await localConnection.setRemoteDescription(answer);
+            
+            logTerminal("SDP Handshake voltooid.");
+        } catch (err) {
+            logTerminal(`WebRTC Fout: ${err.message}`);
+        }
+    }
+
+    // --- Datapakket versturen ---
+    function broadcastState() {
+        if (sendChannel && sendChannel.readyState === 'open') {
+            const effectiveAngle = ((currentAngle % 360) + 360) % 360;
+            let ternary = 0;
+            if (effectiveAngle > 0 && effectiveAngle < 180) ternary = 1;
+            else if (effectiveAngle > 180 && effectiveAngle < 360) ternary = -1;
+
+            const payload = {
+                timestamp: Date.now(),
+                grid: "18x13",
+                angle: effectiveAngle.toFixed(1),
+                ternaryCode: ternary,
+                vector: (Math.abs(effectiveAngle - 234.9) < 0.5) ? "PEGASUS" : "CUSTOM"
+            };
+            
+            sendChannel.send(JSON.stringify(payload));
+        }
+    }
+
+    // --- Render Logic ---
+    function drawPentagon(cx, cy, radius, rotationOffset, strokeStyle, lineWidth) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+            const angle = rotationOffset + (i * 2 * Math.PI / 5) - (Math.PI / 2);
+            const x = cx + radius * Math.cos(angle);
+            const y = cy + radius * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+
+    function drawCompass(angle) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = 125;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        drawPentagon(cx, cy, radius - 15, 0, 'rgba(51, 65, 85, 0.8)', 1.5);
+        drawPentagon(cx, cy, radius - 35, Math.PI / 5, 'rgba(155, 89, 182, 0.25)', 1);
+
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 360; i += 30) {
+            const rad = (i - 90) * (Math.PI / 180);
+            const x1 = cx + radius * Math.cos(rad);
+            const y1 = cy + radius * Math.sin(rad);
+            const x2 = cx + (radius - 8) * Math.cos(rad);
+            const y2 = cy + (radius - 8) * Math.sin(rad);
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        const effectiveAngle = ((angle % 360) + 360) % 360;
+        let vectorColor = (Math.abs(effectiveAngle - 234.9) < 0.5) ? '#9b59b6' : '#e74c3c';
+        
+        rangeInput.style.accentColor = vectorColor;
+
+        const rad = (effectiveAngle - 90) * (Math.PI / 180);
+        const vx = cx + (radius - 50) * Math.cos(rad);
+        const vy = cy + (radius - 50) * Math.sin(rad);
+
+        ctx.strokeStyle = vectorColor;
+        ctx.fillStyle = vectorColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(vx, vy);
+        ctx.stroke();
+
+        ctx.fillStyle = '#b8860b';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+
+    // --- Interactie ---
+    rangeInput.addEventListener('input', (e) => {
+        currentAngle = parseFloat(e.target.value);
+        drawCompass(currentAngle);
+        broadcastState(); // Verzend direct via WebRTC
+    });
+
+    compassWrapper.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        lastMouseAngle = getMouseAngle(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const currentMouseAngle = getMouseAngle(e);
+        let delta = currentMouseAngle - lastMouseAngle;
+
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+
+        currentAngle += delta;
+        lastMouseAngle = currentMouseAngle;
+
+        rangeInput.value = currentAngle;
+        drawCompass(currentAngle);
+        
+        // Rate limiting voor WebRTC transmissie tijdens drag (elke 50ms)
+        if(!window.rtcThrottle) {
+            window.rtcThrottle = setTimeout(() => {
+                broadcastState();
+                window.rtcThrottle = null;
+            }, 50);
+        }
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    function getMouseAngle(e) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const x = e.clientX - cx;
+        const y = e.clientY - cy;
+        let rad = Math.atan2(y, x) * (180 / Math.PI) + 90;
+        if (rad < 0) rad += 360;
+        return rad;
+    }
+
+    // --- Init ---
+    window.onload = function() {
+        drawCompass(currentAngle);
+        setupWebRTC();
+    };
+</script>
+
+</body>
+</html>
