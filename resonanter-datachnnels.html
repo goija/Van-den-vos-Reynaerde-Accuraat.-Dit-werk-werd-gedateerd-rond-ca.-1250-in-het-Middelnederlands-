@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>VORTEX • Sensornet Telemetrie (234 Matrix)</title>
+    <title>VORTEX • Sensornet Telemetrie (234 Matrix & 234 Hz)</title>
     <style>
         :root {
             --bg-color: #050b14;
@@ -13,7 +13,7 @@
             --gold: #b8860b;
             --accent: #e74c3c;
             --webrtc: #2ecc71;
-            --sonic1: #3498db; /* 432 Hz (-234° / 126°) */
+            --sonic1: #3498db; /* 234 Hz (-234° / 126°) */
             --sonic2: #e67e22; /* 110 Hz (234°) */
             --sensor: #9b59b6;
         }
@@ -155,7 +155,7 @@
     </div>
 
     <div class="terminal" id="rtcTerminal">
-        <span class="time">[Systeem]</span> Web Audio API gereed (Correctie: 234° as).<br>
+        <span class="time">[Systeem]</span> Web Audio API gereed (Frequentiecorrectie: 234 Hz).<br>
         <span class="time">[Systeem]</span> Sensornet grid (18x13) rendering gestart.<br>
     </div>
 </div>
@@ -353,7 +353,7 @@
             ctx.stroke();
         }
 
-        // CORRECTIE: 234 graden en -234 graden (126 genormaliseerd)
+        // Visuele markers op -234° (126°) en 234°
         drawMarker(cx, cy, radius, 126, 'var(--sonic1)', '-234°'); 
         drawMarker(cx, cy, radius, 234, 'var(--sonic2)', '234°');
 
@@ -414,14 +414,14 @@
         lblAngle.innerText = currentAngle.toFixed(1) + '°';
         lblRev.innerText = Math.floor(Math.abs(currentAngle) / 360) + ' / 18';
 
-        // CORRECTIE: Wiskundige detectie voor passage over 126° (-234°) en 234°
+        // Wiskundige detectie voor passage over 126° (-234°) en 234°
         let cross126 = Math.floor((tempPrev - 126) / 360) !== Math.floor((tempCurr - 126) / 360);
         let cross234 = Math.floor((tempPrev - 234) / 360) !== Math.floor((tempCurr - 234) / 360);
 
         if (cross126) {
-            playTone(432, 'sine');
-            sendTelemetry("SONIC_PULSE_432HZ_NEG234");
-            logTerminal(`► RESONANTIE: As -234° (126°) gepasseerd → <strong style="color:var(--sonic1)">432 Hz</strong>`);
+            playTone(234, 'sine'); // Aangepast naar 234 Hz
+            sendTelemetry("SONIC_PULSE_234HZ_NEG234");
+            logTerminal(`► RESONANTIE: As -234° (126°) gepasseerd → <strong style="color:var(--sonic1)">234 Hz</strong>`);
         }
         if (cross234) {
             playTone(110, 'triangle');
