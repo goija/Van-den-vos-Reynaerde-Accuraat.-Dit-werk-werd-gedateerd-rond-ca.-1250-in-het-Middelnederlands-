@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORTEX - Fysieke Matrix & Optische Telemetrie</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #38bdf8;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1000px;
+            justify-content: center;
+        }
+        panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        canvas {
+            background: #0f172a;
+            border-radius: 4px;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 280px;
+        }
+        button {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0369a1;
+        }
+        button.active {
+            background: #059669;
+        }
+        .telemetry-data {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+        .highlight {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>VORTEX TELEMETRY (OPTICA)</h1>
+    <div class="subtitle">Matrix Configuratie (18 × 13 = 234) | Spiegelmodus & Triade Integratie</div>
+
+    <div class="container">
+        <!-- Canvas Visualisatie Paneel -->
+        <panel>
+            <canvas id="vortexCanvas" width="400" height="400"></canvas>
+        </panel>
+
+        <!-- Besturing & Telemetrie Paneel -->
+        <panel class="controls">
+            <h3>Systeemcontrole</h3>
+            <button id="audioToggle">Start Audio Resonantie</button>
+            <button id="mirrorToggle" class="active">Spiegelmodus: Aan</button>
+            <button id="resetBtn">Reset Cyclus</button>
+            
+            <h3>Live Telemetrie</h3>
+            <div class="telemetry-data">
+                Matrix Base: <span class="highlight">18 × 13 (234)</span><br>
+                Hoek (Graden): <span id="valAngle" class="highlight">0.0°</span><br>
+                Cyclus Teller: <span id="valCycle" class="highlight">0 / 18</span><br>
+                Totale Limiet: <span class="highlight">6480° (Max)</span><br>
+                Trigger 126°: <span id="trig1" class="highlight">Inactief</span><br>
+                Trigger 234°: <span id="trig2" class="highlight">Inactief</span><br>
+            </div>
+        </panel>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('vortexCanvas');
+        const ctx = canvas.getContext('2d');
+        const angleEl = document.getElementById('valAngle');
+        const cycleEl = document.getElementById('valCycle');
+        const trig1El = document.getElementById('trig1');
+        const trig2El = document.getElementById('trig2');
+        const audioToggleBtn = document.getElementById('audioToggle');
+        const mirrorToggleBtn = document.getElementById('mirrorToggle');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let currentAngle = 0;
+        let cycleCount = 0;
+        let audioCtx = null;
+        let isAudioRunning = false;
+        let isMirrorActive = true;
+
+        // Web Audio API setup voor resonerende triggers (234 Hz en 110 Hz)
+        function playTone(freq) {
+            if (!isAudioRunning || !audioCtx) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch (e) {
+                console.error("Audio fout:", e);
+            }
+        }
+
+        audioToggleBtn.addEventListener('click', () => {
+            if (!isAudioRunning) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                isAudioRunning = true;
+                audioToggleBtn.textContent = "Stop Audio Resonantie";
+                audioToggleBtn.classList.add('active');
+            } else {
+                if (audioCtx) audioCtx.close();
+                isAudioRunning = false;
+                audioToggleBtn.textContent = "Start Audio Resonantie";
+                audioToggleBtn.classList.remove('active');
+            }
+        });
+
+        mirrorToggleBtn.addEventListener('click', () => {
+            isMirrorActive = !isMirrorActive;
+            mirrorToggleBtn.textContent = isMirrorActive ? "Spiegelmodus: Aan" : "Spiegelmodus: Uit";
+            if (isMirrorActive) {
+                mirrorToggleBtn.classList.add('active');
+            } else {
+                mirrorToggleBtn.classList.remove('active');
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            currentAngle = 0;
+            cycleCount = 0;
+        });
+
+        function drawVortex() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 140;
+
+            // Achtergrond matrix ringen tekenen (18 segmenten)
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 18; i++) {
+                let theta = (i * 20) * Math.PI / 180;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + radius * Math.cos(theta), centerY + radius * Math.sin(theta));
+                ctx.stroke();
+            }
+
+            // Cirkel omtrek (Optische Schijf)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Weergave van de 3 entiteiten (gebaseerd op de triade-opstelling)
+            const triadAngles = [0, 120, 240];
+            triadAngles.forEach((baseDeg, idx) => {
+                let tRad = (baseDeg + (currentAngle * 0.2)) * Math.PI / 180;
+                let tx = centerX + (radius * 0.7) * Math.cos(tRad);
+                let ty = centerY + (radius * 0.7) * Math.sin(tRad);
+                ctx.beginPath();
+                ctx.arc(tx, ty, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = idx === 0 ? '#f43f5e' : (idx === 1 ? '#eab308' : '#38bdf8');
+                ctx.fill();
+            });
+
+            // Resonantie hoeken markeren (126° en 234°)
+            [126, 234].forEach(deg => {
+                let rad = deg * Math.PI / 180;
+                ctx.beginPath();
+                ctx.arc(centerX + radius * Math.cos(rad), centerY + radius * Math.sin(rad), 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+            });
+
+            // Primaire vector lijn
+            let currentRad = currentAngle * Math.PI / 180;
+            let tipX = centerX + radius * Math.cos(currentRad);
+            let tipY = centerY + radius * Math.sin(currentRad);
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tipX, tipY);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Spiegelmodus vector (reflectie over de y-as indien actief)
+            if (isMirrorActive) {
+                let mirrorRad = (360 - currentAngle) * Math.PI / 180;
+                let mirrorTipX = centerX + (radius * 0.8) * Math.cos(mirrorRad);
+                let mirrorTipY = centerY + (radius * 0.8) * Math.sin(mirrorRad);
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(mirrorTipX, mirrorTipY);
+                ctx.strokeStyle = '#f43f5e';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset line dash
+            }
+
+            // Centrum stip
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fill();
+        }
+
+        function update() {
+            currentAngle += 1.5;
+            if (currentAngle >= 360) {
+                currentAngle = 0;
+                cycleCount++;
+                if (cycleCount > 18) cycleCount = 0;
+            }
+
+            let normalizedAngle = currentAngle % 360;
+            
+            // Check 126° trigger (234 Hz)
+            if (Math.abs(normalizedAngle - 126) < 1) {
+                trig1El.textContent = "Actief (234 Hz)";
+                trig1El.style.color = "#34d399";
+                playTone(234);
+            } else {
+                trig1El.textContent = "Inactief";
+                trig1El.style.color = "#cbd5e1";
+            }
+
+            // Check 234° trigger (110 Hz)
+            if (Math.abs(normalizedAngle - 234) < 1) {
+                trig2El.textContent = "Actief (110 Hz)";
+                trig2El.style.color = "#34d399";
+                playTone(110);
+            } else {
+                trig2El.textContent = "Inactief";
+                trig2El.style.color = "#cbd5e1";
+            }
+
+            angleEl.textContent = currentAngle.toFixed(1) + "°";
+            cycleEl.textContent = cycleCount + " / 18";
+
+            drawVortex();
+            requestAnimationFrame(update);
+        }
+
+        update();
+    </script>
+</body>
+</html>
