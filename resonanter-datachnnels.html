@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>VORTEX • Sensornet & Data Channels</title>
+    <title>VORTEX • Sensornet Telemetrie (234 Matrix)</title>
     <style>
         :root {
             --bg-color: #050b14;
@@ -13,8 +13,8 @@
             --gold: #b8860b;
             --accent: #e74c3c;
             --webrtc: #2ecc71;
-            --sonic1: #3498db; /* 432 Hz */
-            --sonic2: #e67e22; /* 110 Hz */
+            --sonic1: #3498db; /* 432 Hz (-234° / 126°) */
+            --sonic2: #e67e22; /* 110 Hz (234°) */
             --sensor: #9b59b6;
         }
 
@@ -128,8 +128,8 @@
 <body>
 
 <div class="container">
-    <h1>VORTEX • Sensornet Telemetrie</h1>
-    <p>18x13 Matrix | Solide Ruimte: 8.552 sr² | WebRTC Actief</p>
+    <h1>VORTEX • 234 Resonantie Matrix</h1>
+    <p>18x13 Grid (234) | Solide Ruimte: 8.552 sr² | WebRTC Actief</p>
     
     <div class="dashboard-grid">
         <div class="status-badge">
@@ -155,7 +155,7 @@
     </div>
 
     <div class="terminal" id="rtcTerminal">
-        <span class="time">[Systeem]</span> Web Audio API gereed.<br>
+        <span class="time">[Systeem]</span> Web Audio API gereed (Correctie: 234° as).<br>
         <span class="time">[Systeem]</span> Sensornet grid (18x13) rendering gestart.<br>
     </div>
 </div>
@@ -197,7 +197,7 @@
             receiveChannel = e.channel;
             receiveChannel.onmessage = event => {
                 const data = JSON.parse(event.data);
-                if (packetCount % 5 === 0) { // Log niet elk pakketje om spam te voorkomen
+                if (packetCount % 5 === 0) {
                     logTerminal(`RX Pakket [${data.id}]: Hoek ${data.angle}°, Cyclus ${data.cyclus}`, "rx");
                 }
             };
@@ -268,7 +268,6 @@
     // --- SENSORNET VISUALS ---
     const sensorNodes = [];
     function initSensornet() {
-        // Genereer 18x13 grid conceptuele nodes
         for (let i = 0; i < 18; i++) {
             const angle = (i / 18) * Math.PI * 2;
             for(let j = 1; j <= 4; j++) {
@@ -285,7 +284,6 @@
         ctx.strokeStyle = 'rgba(155, 89, 182, 0.15)';
         ctx.lineWidth = 0.5;
 
-        // Verbind lijnen (web)
         ctx.beginPath();
         for (let i = 0; i < sensorNodes.length; i++) {
             const n1 = sensorNodes[i];
@@ -300,9 +298,8 @@
         }
         ctx.stroke();
 
-        // Teken actieve nodes
         sensorNodes.forEach(node => {
-            const pulse = (Math.sin(time * 0.002 + node.phase) + 1) / 2; // 0 tot 1
+            const pulse = (Math.sin(time * 0.002 + node.phase) + 1) / 2;
             ctx.fillStyle = `rgba(46, 204, 113, ${0.1 + pulse * 0.4})`;
             ctx.beginPath();
             ctx.arc(cx + node.x, cy + node.y, 1.5 + pulse * 1.5, 0, Math.PI * 2);
@@ -356,14 +353,15 @@
             ctx.stroke();
         }
 
-        drawMarker(cx, cy, radius, 124, 'var(--sonic1)', '-236°'); 
-        drawMarker(cx, cy, radius, 236, 'var(--sonic2)', '236°');
+        // CORRECTIE: 234 graden en -234 graden (126 genormaliseerd)
+        drawMarker(cx, cy, radius, 126, 'var(--sonic1)', '-234°'); 
+        drawMarker(cx, cy, radius, 234, 'var(--sonic2)', '234°');
 
         const effectiveAngle = ((currentAngle % 360) + 360) % 360;
 
         let vectorColor = '#e74c3c';
-        if (Math.abs(effectiveAngle - 124) < 2.0) vectorColor = 'var(--sonic1)';
-        if (Math.abs(effectiveAngle - 236) < 2.0) vectorColor = 'var(--sonic2)';
+        if (Math.abs(effectiveAngle - 126) < 2.0) vectorColor = 'var(--sonic1)';
+        if (Math.abs(effectiveAngle - 234) < 2.0) vectorColor = 'var(--sonic2)';
         
         rangeInput.style.accentColor = vectorColor;
 
@@ -416,19 +414,21 @@
         lblAngle.innerText = currentAngle.toFixed(1) + '°';
         lblRev.innerText = Math.floor(Math.abs(currentAngle) / 360) + ' / 18';
 
-        let cross124 = Math.floor((tempPrev - 124) / 360) !== Math.floor((tempCurr - 124) / 360);
-        let cross236 = Math.floor((tempPrev - 236) / 360) !== Math.floor((tempCurr - 236) / 360);
+        // CORRECTIE: Wiskundige detectie voor passage over 126° (-234°) en 234°
+        let cross126 = Math.floor((tempPrev - 126) / 360) !== Math.floor((tempCurr - 126) / 360);
+        let cross234 = Math.floor((tempPrev - 234) / 360) !== Math.floor((tempCurr - 234) / 360);
 
-        if (cross124) {
+        if (cross126) {
             playTone(432, 'sine');
-            sendTelemetry("SONIC_PULSE_432HZ");
+            sendTelemetry("SONIC_PULSE_432HZ_NEG234");
+            logTerminal(`► RESONANTIE: As -234° (126°) gepasseerd → <strong style="color:var(--sonic1)">432 Hz</strong>`);
         }
-        if (cross236) {
+        if (cross234) {
             playTone(110, 'triangle');
-            sendTelemetry("SONIC_PULSE_110HZ");
+            sendTelemetry("SONIC_PULSE_110HZ_POS234");
+            logTerminal(`► RESONANTIE: As 234° gepasseerd → <strong style="color:var(--sonic2)">110 Hz</strong>`);
         }
 
-        // Throttle algemene telemetrie stream (ca 10Hz)
         if (!throttleTimer) {
             throttleTimer = setTimeout(() => {
                 sendTelemetry();
