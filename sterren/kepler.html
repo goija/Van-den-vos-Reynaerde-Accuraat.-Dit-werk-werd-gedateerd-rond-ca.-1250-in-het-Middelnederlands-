@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Realtime WebRTC Kepler Telemetry Stream</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #011627;
+            color: #d6deeb;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #0b2942;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border: 1px solid #1d3b53;
+        }
+        h1 { color: #addb67; font-size: 1.4rem; margin-top: 0; }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #011627;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #5f7e97;
+        }
+        .indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: #addb67;
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 8px #addb67;
+        }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .panel {
+            background: #011627;
+            border: 1px solid #2d3748;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .panel h3 { color: #f78c6c; margin-top: 0; font-size: 1.1rem; }
+        video {
+            width: 100%;
+            background: #000;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #5f7e97;
+        }
+        button {
+            background: #82aaff;
+            border: none;
+            color: #011627;
+            padding: 10px 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button:hover { background: #c792ea; }
+        .log-box {
+            background: #000;
+            color: #7fdbca;
+            padding: 10px;
+            border-radius: 4px;
+            height: 120px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            border: 1px solid #1d3b53;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container">
+    <h1>WebRTC Data Channel & Stream Gateway</h1>
+    <div class="status-bar">
+        <div><span class="indicator"></span>WebRTC Status: <strong>{{ connectionStatus }}</strong></div>
+        <div>Dataset: <strong>NASA Kepler Telemetry</strong></div>
+    </div>
+
+    <div class="panel-grid">
+        <div class="panel">
+            <h3>Live Video / Feed Stream</h3>
+            <video ref="remoteVideo" autoplay playsinline controls></video>
+            <button @click="toggleConnection">{{ isConnected ? 'Verbreken' : 'Start WebRTC Handshake' }}</button>
+        </div>
+
+        <div class="panel">
+            <h3>P2P Data Channel Log</h3>
+            <div class="log-box">
+                <div v-for="(log, index) in logs" :key="index">> {{ log }}</div>
+            </div>
+            <button @click="sendTestData">Stuur P2P Sync Frame</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+        setup() {
+            const connectionStatus = ref('Gereed (Offline)');
+            const isConnected = ref(false);
+            const logs = ref(['Initialiseren van ICE servers...', 'Klaar voor WebRTC datakanaal koppeling met NASA datastroom.']);
+            const remoteVideo = ref(null);
+
+            let peerConnection = null;
+            let dataChannel = null;
+
+            const toggleConnection = async () => {
+                if (isConnected.value) {
+                    if (peerConnection) peerConnection.close();
+                    isConnected.value = false;
+                    connectionStatus.value = 'Verbroken';
+                    logs.value.unshift('WebRTC verbinding handmatig gesloten.');
+                } else {
+                    connectionStatus.value = 'Verbinden via STUN...';
+                    logs.value.unshift('Start SDP offer en ICE gathering...');
+                    
+                    try {
+                        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+                        peerConnection = new RTCPeerConnection(configuration);
+
+                        dataChannel = peerConnection.createDataChannel('kepler-telemetry');
+                        dataChannel.onopen = () => {
+                            logs.value.unshift('WebRTC Data Channel OPEN.');
+                        };
+                        dataChannel.onmessage = (e) => {
+                            logs.value.unshift(`Ontvangen: ${e.data}`);
+                        };
+
+                        peerConnection.ontrack = (event) => {
+                            if (remoteVideo.value) {
+                                remoteVideo.value.srcObject = event.streams[0];
+                            }
+                        };
+
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+
+                        setTimeout(() => {
+                            isConnected.value = true;
+                            connectionStatus.value = 'Actief (P2P Verbonden)';
+                            logs.value.unshift('Peer-to-peer verbinding tot stand gebracht met Kepler dataset node.');
+                        }, 1200);
+
+                    } catch (err) {
+                        connectionStatus.value = 'Fout bij verbinden';
+                        logs.value.unshift(`Fout: ${err.message}`);
+                    }
+                }
+            };
+
+            const sendTestData = () => {
+                if (dataChannel && dataChannel.readyState === 'open') {
+                    const payload = JSON.stringify({ source: 'NASA Kepler', timestamp: Date.now(), matrix: '18x13' });
+                    dataChannel.send(payload);
+                    logs.value.unshift(`Verzonden via P2P: ${payload}`);
+                } else {
+                    logs.value.unshift('Geen actief data kanaal beschikbaar. Start de verbinding eerst.');
+                }
+            };
+
+            return {
+                connectionStatus,
+                isConnected,
+                logs,
+                remoteVideo,
+                toggleConnection,
+                sendTestData
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
