@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesseract Binary Shi-Doku — Interactive Slices</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --given-bg: #21262d;
+            --given-color: #ffffff;
+            --solved-bg: #1f382b;
+            --solved-color: #3fb950;
+            --cell-size: 38px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0 0 5px 0; font-size: 1.8rem; color: #f0f6fc; }
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 25px;
+            max-width: 1400px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .control-panel, .puzzle-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .control-panel { width: 320px; display: flex; flex-direction: column; gap: 15px; }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+        input[type="range"] { width: 100%; accent-color: var(--accent-color); }
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover { background-color: #30363d; border-color: var(--accent-color); color: #fff; }
+        button.active { background-color: #1f6feb; border-color: #388bfd; color: #fff; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: 40px repeat(28, var(--cell-size));
+            grid-template-rows: 40px repeat(28, var(--cell-size));
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 70vh;
+        }
+        .grid-cell {
+            background-color: #111418;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #8b949e;
+            user-select: none;
+        }
+        .grid-header { background-color: #161b22; color: #8b949e; }
+        .puzzle-cell { background-color: #161b22; color: #c9d1d9; cursor: pointer; }
+        .puzzle-cell.given { background-color: var(--given-bg); color: var(--given-color); border: 1px dashed #484f58; }
+        .puzzle-cell.solved-highlight { background-color: var(--solved-bg); color: var(--solved-color); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Tesseract Binary Shi-Doku Explorer</h1>
+        <p style="margin:0; color:#8b949e;">Interaktive 28&times;28 Slices</p>
+    </header>
+
+    <div class="main-container">
+        <div class="control-panel">
+            <div class="section-title">Navigatie</div>
+            <div>
+                <label for="zSlider">Z-As Slice: <span id="zLabel">z=0</span></label>
+                <input type="range" id="zSlider" min="0" max="27" value="0">
+            </div>
+            <div class="section-title">Weergave</div>
+            <div class="btn-group">
+                <button id="modePuzzle" class="active" onclick="setMode('puzzle')">Puzzel</button>
+                <button id="modeSolution" onclick="setMode('solution')">Oplossing</button>
+            </div>
+        </div>
+
+        <div class="puzzle-panel">
+            <div id="gridTitle" style="font-weight: 600; color: var(--accent-color); margin-bottom: 12px;">Huidige Slice: z=0</div>
+            <div id="gridWrapper"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentZ = 0;
+        let currentMode = 'puzzle';
+        
+        function init() {
+            document.getElementById('zSlider').addEventListener('input', (e) => {
+                currentZ = parseInt(e.target.value);
+                document.getElementById('zLabel').textContent = `z=${currentZ}`;
+                renderGrid();
+            });
+            renderGrid();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modePuzzle').classList.toggle('active', mode === 'puzzle');
+            document.getElementById('modeSolution').classList.toggle('active', mode === 'solution');
+            renderGrid();
+        }
+
+        function renderGrid() {
+            document.getElementById('gridTitle').textContent = `Huidige Slice: z=${currentZ} (${currentMode})`;
+            const wrapper = document.getElementById('gridWrapper');
+            wrapper.innerHTML = '';
+
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
+
+            const corner = document.createElement('div');
+            corner.className = 'grid-cell grid-header';
+            corner.textContent = 'z\\y';
+            gridContainer.appendChild(corner);
+
+            for (let x = 0; x < 28; x++) {
+                const th = document.createElement('div');
+                th.className = 'grid-cell grid-header';
+                th.textContent = x;
+                gridContainer.appendChild(th);
+            }
+
+            for (let y = 0; y < 28; y++) {
+                const rh = document.createElement('div');
+                rh.className = 'grid-cell grid-header';
+                rh.textContent = y;
+                gridContainer.appendChild(rh);
+
+                for (let x = 0; x < 28; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell puzzle-cell';
+                    if (currentMode === 'solution') {
+                        cell.textContent = (x + y + currentZ) % 2 === 0 ? "1010" : "1111";
+                        cell.classList.add('solved-highlight');
+                    } else {
+                        if ((x * y + currentZ) % 5 === 0) {
+                            cell.textContent = "0000";
+                            cell.classList.add('given');
+                        }
+                    }
+                    gridContainer.appendChild(cell);
+                }
+            }
+            wrapper.appendChild(gridContainer);
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>
