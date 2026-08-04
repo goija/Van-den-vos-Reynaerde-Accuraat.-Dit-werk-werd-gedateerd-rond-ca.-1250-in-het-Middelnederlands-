@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactieve Kleurenkaart - Synthese van Thema's</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #182234;
+            --accent: #38bdf8;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding: 24px;
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #38bdf8, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Navigatie Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background-color: #334155;
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background-color: #0284c7;
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        /* Tab Inhoud */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Grid Layouts */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Color Swatch Display */
+        .swatch-box {
+            height: 100px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 10px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .swatch-box .copy-badge {
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .swatch-box:hover .copy-badge::after {
+            content: ' (Klik om te kopiëren)';
+            opacity: 0.8;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #f1f5f9;
+        }
+
+        .card-sub {
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .card-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+        }
+
+        /* Spectrum Bar */
+        .spectrum-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .spectrum-bar {
+            display: flex;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .spectrum-color {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: flex 0.3s ease;
+        }
+
+        .spectrum-color:hover {
+            flex: 1.5;
+        }
+
+        /* Double Star Visualizer */
+        .star-pair-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .star-card {
+            flex: 1;
+            min-width: 300px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .star-visual {
+            height: 180px;
+            background: #030712;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .star-primary {
+            border-radius: 50%;
+            box-shadow: 0 0 25px currentColor;
+        }
+
+        .star-secondary {
+            border-radius: 50%;
+            box-shadow: 0 0 18px currentColor;
+        }
+
+        /* Custom Interactive Palette Generator & Matrix */
+        .tool-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-top: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 3px;
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .matrix-cell {
+            aspect-ratio: 1;
+            border-radius: 2px;
+            transition: transform 0.1s;
+            cursor: pointer;
+        }
+
+        .matrix-cell:hover {
+            transform: scale(1.3);
+            z-index: 10;
+        }
+
+        /* Toast notification */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0284c7;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        th {
+            color: var(--accent);
+            background-color: rgba(255,255,255,0.02);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Synthese Kleurenkaart & Interactieve Matrix</h1>
+        <p>Een overzicht van Newton's spectrum, Tibetaanse astrologie, Wuxing elementen en dubbelsterren contrasten</p>
+    </header>
+
+    <!-- Navigatie Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('newton')">1. Newton's Spectrum</button>
+        <button class="tab-btn" onclick="switchTab('tibetan')">2. Tibetaanse Astrologie (gza' bcu)</button>
+        <button class="tab-btn" onclick="switchTab('wuxing')">3. Wuxing Elementen</button>
+        <button class="tab-btn" onclick="switchTab('stars')">4. Dubbelsterren Contrast</button>
+        <button class="tab-btn" onclick="switchTab('goethe')">5. Goethe & Kandinsky</button>
+        <button class="tab-btn" onclick="switchTab('matrix')">6. 18x13 Vortex Routing Matrix</button>
+    </div>
+
+    <!-- TAB 1: NEWTON -->
+    <div id="newton" class="tab-content active">
+        <div class="spectrum-container">
+            <h2 style="margin-bottom: 8px;">Isaac Newton's 7 Kleuren Spectrum (1704)</h2>
+            <p class="card-desc">Newton koos 7 kleuren om 1-op-1 te corresponderen met de 7 noten van de diatonische muziekschaal en de 7 klassieke planeten.</p>
+            
+            <div class="spectrum-bar">
+                <div class="spectrum-color" style="background-color: #E63946;" onclick="copyColor('#E63946')">Rood</div>
+                <div class="spectrum-color" style="background-color: #F4A261;" onclick="copyColor('#F4A261')">Oranje</div>
+                <div class="spectrum-color" style="background-color: #E9C46A; color: #000;" onclick="copyColor('#E9C46A')">Geel</div>
+                <div class="spectrum-color" style="background-color: #2A9D8F;" onclick="copyColor('#2A9D8F')">Groen</div>
+                <div class="spectrum-color" style="background-color: #0077B6;" onclick="copyColor('#0077B6')">Blauw</div>
+                <div class="spectrum-color" style="background-color: #311B92;" onclick="copyColor('#311B92')">Indigo</div>
+                <div class="spectrum-color" style="background-color: #7B1FA2;" onclick="copyColor('#7B1FA2')">Violet</div>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); text-align: center;">Klik op een kleurvak om de HEX-code te kopiëren.</p>
+        </div>
+
+        <div class="grid-cards" id="newton-grid"></div>
+    </div>
+
+    <!-- TAB 2: TIBETAANSE ASTROLOGIE -->
+    <div id="tibetan" class="tab-content">
+        <div style="margin-bottom: 20px;">
+            <h2>Tibetaanse Astrologie: De 10 Hemellichamen (gza' bcu)</h2>
+            <p class="card-desc">Binnen de 'Tien Wetenschappen' (rig-pa'i gnas bcu). Elk hemellichaam bezit een specifieke astrologische kleurenergie.</p>
+        </div>
+        <div class="grid-cards" id="tibetan-grid"></div>
+    </div>
+
+    <!-- TAB 3: WUXING -->
+    <div id="wuxing" class="tab-content">
+        <div style="margin-bottom: 20px;">
+            <h2>Wuxing Vijf Elementen & De Positie van Violet</h2>
+            <p class="card-desc">Chinees filosofisch kleurensysteem. Violet neemt een unieke niet-elementaire positie in als fusie van Blauw (Water) en Rood (Vuur) — in het Tibetaans <i>sngo dmar</i>.</p>
+        </div>
+        <div class="grid-cards" id="wuxing-grid"></div>
+    </div>
+
+    <!-- TAB 4: DUBBELSTERREN -->
+    <div id="stars" class="tab-content">
+        <div style="margin-bottom: 20px;">
+            <h2>Dubbelsterren & Optische Kleurcontrasten</h2>
+            <p class="card-desc">Visuele observatie van dubbelsterren toont unieke kleurcontrasten door menselijke perceptie en optische effecten.</p>
+        </div>
+        <div class="star-pair-container" id="stars-container"></div>
+    </div>
+
+    <!-- TAB 5: GOETHE & KANDINSKY -->
+    <div id="goethe" class="tab-content">
+        <div class="spectrum-container">
+            <h2>Goethe's Kleurentheorie (1810) & Kandinsky's Psychologie</h2>
+            <p class="card-desc" style="margin-top: 8px;">
+                Goethe verwierp Newton's mathematische benadering en bekeek kleur vanuit menselijke perceptie tussen licht en duisternis. Kandinsky stelde: <i>"Kleur is het toetsenbord, de ogen zijn de hamers, de ziel is de piano."</i>
+            </p>
+            <div class="grid-cards" style="margin-top: 20px;" id="goethe-grid"></div>
+        </div>
+    </div>
+
+    <!-- TAB 6: MATRIX GENERATOR -->
+    <div id="matrix" class="tab-content">
+        <div class="tool-panel">
+            <h2>18x13 Vortex Routing Matrix Visualizer</h2>
+            <p class="card-desc" style="margin-bottom: 16px;">
+                Simulatie van de chromatische overgangen en vortex-routing tussen de 7 radiale plasma's en elementaire kleuren over een 18x13 raster.
+            </p>
+            <div class="controls">
+                <label>Basiskleur Plasma 1: <input type="color" id="color1" value="#e63946" onchange="renderMatrix()"></label>
+                <label>Basiskleur Plasma 7: <input type="color" id="color2" value="#7b1fa2" onchange="renderMatrix()"></label>
+                <button class="tab-btn" onclick="renderMatrix()">Herbereken Matrix</button>
+            </div>
+            <div class="matrix-grid" id="matrixGrid"></div>
+        </div>
+    </div>
+
+    <!-- Toast Component -->
+    <div id="toast">Kleurcode gekopieerd naar klembord!</div>
+
+    <script>
+        // Data Structuren
+        const newtonData = [
+            { name: "Rood", hex: "#E63946", note: "Do (C)", planet: "Mars / Zon", metal: "IJzer / Goud", desc: "Start van het kleurenspectrum en muzikale octaaf." },
+            { name: "Oranje", hex: "#F4A261", note: "Re (D)", planet: "Mercurius", metal: "Kwik", desc: "Toegevoegd door Newton voor 7-voudige symmetrie." },
+            { name: "Geel", hex: "#E9C46A", note: "Mi (E)", planet: "Venus", metal: "Koper", desc: "Correspondeert met de helderste toon in het centrum." },
+            { name: "Groen", hex: "#2A9D8F", note: "Fa (F)", planet: "Saturnus", metal: "Lood", desc: "Middelpunt van de brekingsindex van licht." },
+            { name: "Blauw", hex: "#0077B6", note: "Sol (G)", planet: "Jupiter", metal: "Tin", desc: "Eerste koele chromatische ervaring." },
+            { name: "Indigo", hex: "#311B92", note: "La (A)", planet: "Maan", metal: "Zilver", desc: "Esoterische overgangstint tussen blauw en violet." },
+            { name: "Violet", hex: "#7B1FA2", note: "Ti (B)", planet: "Zon / Kosmos", metal: "Elektrum", desc: "Hoogste frequentie binnen het zichtbare spectrum." }
+        ];
+
+        const tibetanData = [
+            { name: "Zon (Nyi-ma)", hex: "#E63946", colorName: "Rood", desc: "Spoor van vitaliteit, vuurenergie en centrale kracht." },
+            { name: "Maan (Zla-ba)", hex: "#F8F9FA", colorName: "Wit", desc: "Zuiverheid, verkoelende waterenergie en rust." },
+            { name: "Mercurius (Lhag-pa)", hex: "#2A9D8F", colorName: "Groen", desc: "Intellect, communicatie en evenwichtige groei." },
+            { name: "Venus (Phur-bu)", hex: "#F4F1DE", colorName: "Wit-crème", desc: "Harmonie, verfijning en esthetische balans." },
+            { name: "Mars (Mig-dmar)", hex: "#9E2A2B", colorName: "Dieprood", desc: "Passie, actie, strijd en dynamische transformatie." },
+            { name: "Jupiter (Phur-bu)", hex: "#E9C46A", colorName: "Goud-geel", desc: "Kennis, wijsheid, overvloed en expansie." },
+            { name: "Saturnus (Spen-pa)", hex: "#1D3557", colorName: "Donkerblauw/Zwart", desc: "Disciplines, obstructies, tijd en concentratie." },
+            { name: "Noordknoop (Rahu)", hex: "#6C757D", colorName: "Rook-grijs", desc: "Schaduwlichaam, zonsverduistering en transformatie." },
+            { name: "Zuidknoop (Ketu)", hex: "#8D5B4C", colorName: "Bruin-aarde", desc: "Karma, spirituele bevrijding en aarding." },
+            { name: "Komeet (Ske-tu)", hex: "#F4A261", colorName: "Feloranje/Saffraan", desc: "Onverwachte gebeurtenissen en hemelse voortekenen." }
+        ];
+
+        const wuxingData = [
+            { name: "Hout (Wood)", hex: "#2EC4B6", inter: "Cyaan", dir: "Oost", desc: "Lente, groei, creatieve ontplooiing." },
+            { name: "Vuur (Fire)", hex: "#E71D36", inter: "Oranje", dir: "Zuid", desc: "Zomer, hitte, maximale expressie." },
+            { name: "Aarde (Earth)", hex: "#FF9F1C", inter: "Grijs", dir: "Centrum", desc: "Seizoensovergang, stabiliteit, voeding." },
+            { name: "Metaal (Metal)", hex: "#E0E1DD", inter: "Aquamarijn", dir: "West", desc: "Herfst, oogst, helderheid en structuur." },
+            { name: "Water (Water)", hex: "#011627", inter: "Paars", dir: "Noord", desc: "Winter, stilte, opslag van potentie." },
+            { name: "Violet (sngo dmar)", hex: "#7209B7", inter: "Blauw + Rood", dir: "Non-Elementair", desc: "Directe fusie van Water (blauw) & Vuur (rood)." }
+        ];
+
+        const starData = [
+            { name: "Albireo (β Cygni)", pColor: "#FFD166", sColor: "#118AB2", pSize: 32, sSize: 20, pText: "Geel-wit (Goud)", sText: "Blauw-indigo", desc: "Het meest iconische optische kleurcontrast aan de nachthemel." },
+            { name: "Gamma Andromedae (Almach)", pColor: "#F4A261", sColor: "#2A9D8F", pSize: 36, sSize: 18, pText: "Goud / Oranje", sText: "Indigo-blauw", desc: "Klassiek contrast geobserveerd sinds de 18e eeuw." },
+            { name: "Beta Scorpii (Acrab)", pColor: "#FFFFFF", sColor: "#B5179E", pSize: 30, sSize: 22, pText: "Helder Wit", sText: "Lila / Groenachtig", desc: "Contrast-effect laat secundaire lila tint opvallen." }
+        ];
+
+        const goetheData = [
+            { name: "Rood", hex: "#E63946", label: "Schoon", desc: "Hoogste harmonieuze staat van licht en duisternis." },
+            { name: "Oranje", hex: "#F4A261", label: "Edel", desc: "Verhoogde energie vanuit geel richting rood." },
+            { name: "Geel", hex: "#E9C46A", label: "Goed", desc: "Dichtst bij het zuivere licht; brengt warmte." },
+            { name: "Groen", hex: "#2A9D8F", label: "Nuttig", desc: "Klassieke rustgevende balans tussen geel en blauw." },
+            { name: "Blauw", hex: "#0077B6", label: "Gewoon", desc: "Dichtst bij de duisternis; trekt aan en voelt koel." },
+            { name: "Violet", hex: "#7B1FA2", label: "Onnodig", desc: "Door Goethe als randverschijnsel/onnodig geclassificeerd." }
+        ];
+
+        // Render Functions
+        function renderNewton() {
+            const container = document.getElementById('newton-grid');
+            container.innerHTML = newtonData.map(item => `
+                <div class="card">
+                    <div class="swatch-box" style="background-color: ${item.hex};" onclick="copyColor('${item.hex}')">
+                        <span class="copy-badge">${item.hex}</span>
+                    </div>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-sub">Noot: ${item.note} | Planeet: ${item.planet}</div>
+                    <div class="card-desc">Metaal: ${item.metal}. ${item.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderTibetan() {
+            const container = document.getElementById('tibetan-grid');
+            container.innerHTML = tibetanData.map(item => `
+                <div class="card">
+                    <div class="swatch-box" style="background-color: ${item.hex}; ${item.hex === '#F8F9FA' ? 'color: #000;' : ''}" onclick="copyColor('${item.hex}')">
+                        <span class="copy-badge" style="${item.hex === '#F8F9FA' ? 'background: rgba(255,255,255,0.8); color:#000;' : ''}">${item.hex}</span>
+                    </div>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-sub">Kleur: ${item.colorName}</div>
+                    <div class="card-desc">${item.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderWuxing() {
+            const container = document.getElementById('wuxing-grid');
+            container.innerHTML = wuxingData.map(item => `
+                <div class="card">
+                    <div class="swatch-box" style="background-color: ${item.hex};" onclick="copyColor('${item.hex}')">
+                        <span class="copy-badge">${item.hex}</span>
+                    </div>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-sub">Richting: ${item.dir} | Intermediair: ${item.inter}</div>
+                    <div class="card-desc">${item.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderStars() {
+            const container = document.getElementById('stars-container');
+            container.innerHTML = starData.map(item => `
+                <div class="star-card">
+                    <div class="card-title">${item.name}</div>
+                    <div class="star-visual">
+                        <div class="star-primary" style="background-color: ${item.pColor}; width: ${item.pSize}px; height: ${item.pSize}px; color: ${item.pColor};"></div>
+                        <div class="star-secondary" style="background-color: ${item.sColor}; width: ${item.sSize}px; height: ${item.sSize}px; color: ${item.sColor};"></div>
+                    </div>
+                    <div class="card-sub">Primaire: <span style="color:${item.pColor}">${item.pText}</span> | Secundaire: <span style="color:${item.sColor}">${item.sText}</span></div>
+                    <div class="card-desc">${item.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderGoethe() {
+            const container = document.getElementById('goethe-grid');
+            container.innerHTML = goetheData.map(item => `
+                <div class="card">
+                    <div class="swatch-box" style="background-color: ${item.hex};" onclick="copyColor('${item.hex}')">
+                        <span class="copy-badge">${item.hex}</span>
+                    </div>
+                    <div class="card-title">${item.name} — ${item.label}</div>
+                    <div class="card-desc">${item.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderMatrix() {
+            const grid = document.getElementById('matrixGrid');
+            const c1 = document.getElementById('color1').value;
+            const c2 = document.getElementById('color2').value;
+            grid.innerHTML = '';
+
+            const rgb1 = hexToRgb(c1);
+            const rgb2 = hexToRgb(c2);
+
+            for (let row = 0; row < 13; row++) {
+                for (let col = 0; col < 18; col++) {
+                    const factor = (row / 12) * 0.5 + (col / 17) * 0.5;
+                    const r = Math.round(rgb1.r + factor * (rgb2.r - rgb1.r));
+                    const g = Math.round(rgb1.g + factor * (rgb2.g - rgb1.g));
+                    const b = Math.round(rgb1.b + factor * (rgb2.b - rgb1.b));
+                    const hex = rgbToHex(r, g, b);
+
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.style.backgroundColor = hex;
+                    cell.title = `Positie: (${col+1},${row+1}) - ${hex}`;
+                    cell.onclick = () => copyColor(hex);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Helper Functions
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function copyColor(hex) {
+            navigator.clipboard.writeText(hex);
+            const toast = document.getElementById('toast');
+            toast.innerText = `Kleurcode ${hex} gekopieerd!`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function hexToRgb(hex) {
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        // Init op start
+        window.onload = function() {
+            renderNewton();
+            renderTibetan();
+            renderWuxing();
+            renderStars();
+            renderGoethe();
+            renderMatrix();
+        };
+    </script>
+</body>
+</html>
