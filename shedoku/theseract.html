@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesseract Binary Shi-Doku — Interactive 28×28 Slices</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --given-bg: #21262d;
+            --given-color: #ffffff;
+            --solved-bg: #1f382b;
+            --solved-color: #3fb950;
+            --cell-size: 38px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.8rem;
+            color: #f0f6fc;
+        }
+
+        p.subtitle {
+            margin: 0;
+            color: #8b949e;
+            font-size: 0.95rem;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 25px;
+            max-width: 1400px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            width: 320px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .puzzle-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: auto;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-color);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #30363d;
+            border-color: var(--accent-color);
+            color: #ffffff;
+        }
+
+        button.active {
+            background-color: #1f6feb;
+            border-color: #388bfd;
+            color: #ffffff;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-box {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 40px repeat(28, var(--cell-size));
+            grid-template-rows: 40px repeat(28, var(--cell-size));
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .grid-cell {
+            background-color: #111418;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #8b949e;
+            user-select: none;
+            transition: background 0.15s;
+        }
+
+        .grid-header {
+            background-color: #161b22;
+            color: #8b949e;
+            font-size: 0.75rem;
+        }
+
+        .puzzle-cell {
+            background-color: #161b22;
+            color: #c9d1d9;
+            cursor: pointer;
+        }
+
+        .puzzle-cell.given {
+            background-color: var(--given-bg);
+            color: var(--given-color);
+            border: 1px dashed #484f58;
+        }
+
+        .puzzle-cell.user-filled {
+            background-color: #233554;
+            color: #61afef;
+        }
+
+        .puzzle-cell.solved-highlight {
+            background-color: var(--solved-bg);
+            color: var(--solved-color);
+        }
+
+        .compass-guide {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .compass-badge {
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stats {
+            font-size: 0.85rem;
+            color: #8b949e;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Tesseract Binary Shi-Doku (84&sup4; Slice Explorer)</h1>
+        <p class="subtitle">Interactieve 28&times;28 Slices Viewer & Oplosser gebaseerd op de Siriaanse Kosmologie & Noösfeer</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="section-title">Slice Navigatie</div>
+            <div class="slider-group">
+                <label for="zSlider">Z-As Slice: <span id="zLabel">z=0</span></label>
+                <input type="range" id="zSlider" min="0" max="27" value="0">
+            </div>
+
+            <div class="section-title">Weergave Modus</div>
+            <div class="btn-group">
+                <button id="modePuzzle" class="active" onclick="setMode('puzzle')">Puzzel (Givens)</button>
+                <button id="modeSolution" onclick="setMode('solution')">Volledige Oplossing</button>
+            </div>
+
+            <button onclick="checkPuzzle()" style="margin-top: 5px; background-color: #238636; border-color: #2ea043; color: white;">Controleer Invoer</button>
+
+            <div class="section-title" style="margin-top: 10px;">Kardinale Windstreken</div>
+            <div class="compass-guide">
+                <div class="compass-badge"><b>0000</b>: Noord (N)</div>
+                <div class="compass-badge"><b>1111</b>: Oost (O)</div>
+                <div class="compass-badge"><b>1010</b>: Zuid (Z)</div>
+                <div class="compass-badge"><b>0101</b>: West (W)</div>
+            </div>
+
+            <div class="section-title" style="margin-top: 10px;">Legenda & Info</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: #21262d; border: 1px dashed #484f58;"></div>
+                    <span>Vaste Puzzel Cellen (Givens)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: #1f382b;"></div>
+                    <span>Opgeloste / Juiste Waarde</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: #233554;"></div>
+                    <span>Zelf ingevulde cel</span>
+                </div>
+            </div>
+
+            <div class="stats" style="margin-top: 10px;" id="statsInfo">
+                Dimensie: 84&sup4; Tesseract<br>
+                Actieve Slices: 28 &times; 28 rooster<br>
+                Waarden: 4-bits binaire codering
+            </div>
+        </div>
+
+        <!-- Puzzle Grid Panel -->
+        <div class="puzzle-panel">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 12px;">
+                <span id="gridTitle" style="font-weight: 600; color: var(--accent-color);">Huidige Slice: z=0</span>
+                <span id="statusMessage" style="font-size: 0.85rem; color: #8b949e;">Klik op een cel om door de windstreken (0000, 1111, 1010, 0101) te cyclen</span>
+            </div>
+            <div id="gridWrapper">
+                <!-- Grid gets injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const puzzleData = {"z=0": {"y=1": "1010", "y=4": "0000", "y=5": "1010", "y=7": "0101", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=15": "0101", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=25": "1010", "y=27": "0101"}, "z=1": {"y=0": "0101", "y=4": "0101", "y=6": "1010", "y=7": "0000", "y=12": "0101", "y=14": "1010", "y=15": "0000", "y=17": "1111", "y=19": "0000", "y=23": "0000", "y=24": "0101", "y=27": "0000"}, "z=2": {"y=0": "1111", "y=1": "0101", "y=3": "1010", "y=4": "1111", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=13": "0101", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=22": "0000", "y=23": "1010", "y=27": "1010"}, "z=3": {"y=0": "1010", "y=3": "1111", "y=4": "1010", "y=7": "1111", "y=9": "0000", "y=13": "0000", "y=14": "0101", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=26": "0101", "y=27": "1111"}, "z=4": {"y=3": "0101", "y=4": "0000", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=14": "1111", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=23": "0101", "y=26": "1111"}, "z=5": {"y=1": "1111", "y=8": "0101", "y=9": "1111", "y=11": "0000", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=20": "0101", "y=25": "1111", "y=26": "1010"}, "z=6": {"y=1": "0101", "y=2": "0000", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=8": "1111", "y=9": "0101", "y=11": "1010", "y=14": "0000", "y=18": "0000", "y=21": "0101", "y=24": "1111"}, "z=7": {"y=0": "1010", "y=1": "0000", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=7": "1111", "y=8": "1010", "y=10": "0101", "y=11": "1111", "y=14": "0101", "y=15": "1111", "y=17": "0000", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=8": {"y=0": "0000", "y=3": "0101", "y=4": "0000", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000"}, "z=9": {"y=0": "0101", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=9": "1111", "y=10": "1010", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=23": "0000", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=10": {"y=1": "0101", "y=3": "1010", "y=5": "0101", "y=6": "0000", "y=12": "1111", "y=14": "0000", "y=20": "1111", "y=25": "0101", "y=27": "1010"}, "z=11": {"y=0": "1010", "y=2": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=14": "0101", "y=15": "1111", "y=19": "1111", "y=20": "1010", "y=22": "0101", "y=24": "1010", "y=25": "0000", "y=27": "1111"}, "z=12": {"y=0": "0000", "y=3": "0101", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=13": "1010", "y=15": "0101", "y=17": "1010", "y=19": "0101", "y=24": "0000"}, "z=13": {"y=2": "1010", "y=9": "1111", "y=11": "0000", "y=12": "0101", "y=14": "1010", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=20": "0101", "y=24": "0101", "y=27": "0000"}, "z=14": {"y=2": "0000", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=16": "1111", "y=18": "0000", "y=20": "1111", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=26": "0000"}, "z=15": {"y=1": "0000", "y=4": "1010", "y=6": "0101", "y=7": "1111", "y=9": "0000", "y=10": "0101", "y=12": "1010", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=19": "1111", "y=20": "1010", "y=22": "0101", "y=23": "1111", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=16": {"y=5": "1010", "y=7": "0101", "y=8": "0000", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=14": "1111", "y=16": "0000", "y=18": "1111", "y=19": "0101", "y=22": "1111", "y=24": "0000", "y=25": "1010"}, "z=17": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=8": "0101", "y=11": "0000", "y=13": "1111", "y=15": "0000", "y=19": "0000", "y=20": "0101", "y=22": "1010", "y=23": "0000", "y=25": "1111", "y=26": "1010"}, "z=18": {"y=2": "0000", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=13": "0101", "y=15": "1010", "y=18": "0000", "y=19": "1010", "y=23": "1010", "y=27": "1010"}, "z=19": {"y=1": "0000", "y=2": "0101", "y=3": "1111", "y=5": "0000", "y=6": "0101", "y=9": "0000", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=16": "1010", "y=18": "0101", "y=19": "1111", "y=25": "0000", "y=26": "0101"}, "z=20": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=6": "1111", "y=9": "1010", "y=13": "1010", "y=14": "1111", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=21": "1010", "y=22": "1111", "y=24": "0000", "y=25": "1010", "y=26": "1111"}, "z=21": {"y=5": "1111", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=26": "1010", "y=27": "0000"}, "z=22": {"y=1": "0101", "y=4": "1111", "y=5": "0101", "y=7": "1010", "y=9": "0101", "y=10": "0000", "y=12": "1111", "y=14": "0000", "y=17": "0101", "y=19": "1010", "y=27": "1010"}, "z=23": {"y=1": "0000", "y=3": "1111", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=16": "1010", "y=17": "0000", "y=21": "0000", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=24": {"y=1": "1010", "y=2": "1111", "y=4": "0000", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=13": "1010", "y=15": "0101", "y=17": "1010", "y=20": "0000", "y=21": "1010", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=25": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=12": "0101", "y=13": "1111", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=24": "0101", "y=25": "1111", "y=27": "0000"}, "z=26": {"y=1": "0101", "y=9": "0101", "y=10": "0000", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=18": "0000", "y=19": "1010", "y=21": "0101"}, "z=27": {"y=0": "1010", "y=1": "0000", "y=4": "1010", "y=9": "0000", "y=12": "1010", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=21": "0000", "y=23": "1111", "y=25": "0000", "y=26": "0101"}};
+        const solutionData = {"z=0": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=1": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=2": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=3": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=4": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=5": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=6": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=7": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=8": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=9": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=10": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=11": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=12": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=13": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=14": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=15": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=16": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=17": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=18": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=19": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=20": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=21": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=22": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=23": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}, "z=24": {"y=0": "0000", "y=1": "1010", "y=2": "1111", "y=3": "0101", "y=4": "0000", "y=5": "1010", "y=6": "1111", "y=7": "0101", "y=8": "0000", "y=9": "1010", "y=10": "1111", "y=11": "0101", "y=12": "0000", "y=13": "1010", "y=14": "1111", "y=15": "0101", "y=16": "0000", "y=17": "1010", "y=18": "1111", "y=19": "0101", "y=20": "0000", "y=21": "1010", "y=22": "1111", "y=23": "0101", "y=24": "0000", "y=25": "1010", "y=26": "1111", "y=27": "0101"}, "z=25": {"y=0": "0101", "y=1": "1111", "y=2": "1010", "y=3": "0000", "y=4": "0101", "y=5": "1111", "y=6": "1010", "y=7": "0000", "y=8": "0101", "y=9": "1111", "y=10": "1010", "y=11": "0000", "y=12": "0101", "y=13": "1111", "y=14": "1010", "y=15": "0000", "y=16": "0101", "y=17": "1111", "y=18": "1010", "y=19": "0000", "y=20": "0101", "y=21": "1111", "y=22": "1010", "y=23": "0000", "y=24": "0101", "y=25": "1111", "y=26": "1010", "y=27": "0000"}, "z=26": {"y=0": "1111", "y=1": "0101", "y=2": "0000", "y=3": "1010", "y=4": "1111", "y=5": "0101", "y=6": "0000", "y=7": "1010", "y=8": "1111", "y=9": "0101", "y=10": "0000", "y=11": "1010", "y=12": "1111", "y=13": "0101", "y=14": "0000", "y=15": "1010", "y=16": "1111", "y=17": "0101", "y=18": "0000", "y=19": "1010", "y=20": "1111", "y=21": "0101", "y=22": "0000", "y=23": "1010", "y=24": "1111", "y=25": "0101", "y=26": "0000", "y=27": "1010"}, "z=27": {"y=0": "1010", "y=1": "0000", "y=2": "0101", "y=3": "1111", "y=4": "1010", "y=5": "0000", "y=6": "0101", "y=7": "1111", "y=8": "1010", "y=9": "0000", "y=10": "0101", "y=11": "1111", "y=12": "1010", "y=13": "0000", "y=14": "0101", "y=15": "1111", "y=16": "1010", "y=17": "0000", "y=18": "0101", "y=19": "1111", "y=20": "1010", "y=21": "0000", "y=22": "0101", "y=23": "1111", "y=24": "1010", "y=25": "0000", "y=26": "0101", "y=27": "1111"}};
+
+        let currentZ = 0;
+        let currentMode = 'puzzle'; // 'puzzle' or 'solution'
+        let userGridState = {}; // stores user modified cells: "z=X,y=Y" -> value
+
+        const validValues = ["0000", "1111", "1010", "0101"];
+
+        function init() {
+            const slider = document.getElementById('zSlider');
+            slider.addEventListener('input', (e) => {
+                currentZ = parseInt(e.target.value);
+                document.getElementById('zLabel').textContent = `z=${currentZ}`;
+                renderGrid();
+            });
+
+            renderGrid();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modePuzzle').classList.toggle('active', mode === 'puzzle');
+            document.getElementById('modeSolution').classList.toggle('active', mode === 'solution');
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const zKey = `z=${currentZ}`;
+            document.getElementById('gridTitle').textContent = `Huidige Slice: z=${currentZ} (${currentMode === 'puzzle' ? 'Puzzel Modus' : 'Oplossing Modus'})`;
+            
+            const wrapper = document.getElementById('gridWrapper');
+            wrapper.innerHTML = '';
+
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
+
+            // Top-left corner cell
+            const corner = document.createElement('div');
+            corner.className = 'grid-cell grid-header';
+            corner.textContent = 'z\y';
+            gridContainer.appendChild(corner);
+
+            // Column headers y=0 to y=27
+            for (let x = 0; x < 28; x++) {
+                const th = document.createElement('div');
+                th.className = 'grid-cell grid-header';
+                th.textContent = x;
+                gridContainer.appendChild(th);
+            }
+
+            const pSlice = puzzleData[zKey] || {};
+            const sSlice = solutionData[zKey] || {};
+
+            // Rows y=0 to y=27
+            for (let y = 0; y < 28; y++) {
+                const yKey = `y=${y}`;
+                
+                // Row header
+                const rh = document.createElement('div');
+                rh.className = 'grid-cell grid-header';
+                rh.textContent = y;
+                gridContainer.appendChild(rh);
+
+                // Cells for this row
+                for (let x = 0; x < 28; x++) {
+                    const colKey = `y=${x}`; // in CSV columns are named y=0, y=1... representing the x-axis coordinate in slice
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell puzzle-cell';
+
+                    const givenVal = pSlice[colKey];
+                    const solVal = sSlice[colKey] || "";
+                    const stateKey = `${currentZ},${y},${x}`;
+                    const userVal = userGridState[stateKey];
+
+                    if (currentMode === 'solution') {
+                        cell.textContent = solVal;
+                        cell.classList.add('solved-highlight');
+                    } else {
+                        // Puzzle mode
+                        if (givenVal !== undefined) {
+                            cell.textContent = givenVal;
+                            cell.classList.add('given');
+                        } else if (userVal !== undefined) {
+                            cell.textContent = userVal;
+                            cell.classList.add('user-filled');
+                        } else {
+                            cell.textContent = "";
+                        }
+
+                        // Click handler for interactive editing in puzzle mode
+                        cell.addEventListener('click', () => {
+                            if (givenVal !== undefined) return; // Cannot edit givens
+                            let currentVal = userGridState[stateKey] || "";
+                            let nextValIdx = validValues.indexOf(currentVal) + 1;
+                            if (nextValIdx >= validValues.length || nextValIdx < 0) {
+                                userGridState[stateKey] = validValues[0];
+                            } else {
+                                userGridState[stateKey] = validValues[nextValIdx];
+                            }
+                            renderGrid();
+                        });
+                    }
+
+                    gridContainer.appendChild(cell);
+                }
+            }
+
+            wrapper.appendChild(gridContainer);
+        }
+
+        function checkPuzzle() {
+            let correct = true;
+            let checkedCount = 0;
+            const zKey = `z=${currentZ}`;
+            const sSlice = solutionData[zKey] || {};
+            const pSlice = puzzleData[zKey] || {};
+
+            for (let y = 0; y < 28; y++) {
+                for (let x = 0; x < 28; x++) {
+                    const colKey = `y=${x}`;
+                    const stateKey = `${currentZ},${y},${x}`;
+                    const userVal = userGridState[stateKey];
+                    const givenVal = pSlice[colKey];
+                    const solVal = sSlice[colKey];
+
+                    if (givenVal === undefined && userVal !== undefined) {
+                        checkedCount++;
+                        if (userVal !== solVal) {
+                            correct = false;
+                        }
+                    }
+                }
+            }
+
+            const status = document.getElementById('statusMessage');
+            if (checkedCount === 0) {
+                status.textContent = "Geen zelf ingevulde cellen gevonden in deze slice om te controleren.";
+                status.style.color = "#8b949e";
+            } else if (correct) {
+                status.textContent = `Geweldig! Alle ${checkedCount} ingevulde cellen in slice z=${currentZ} zijn correct!`;
+                status.style.color = "#3fb950";
+            } else {
+                status.textContent = `Let op: Sommige ingevulde cellen in slice z=${currentZ} komen nog niet overeen met de oplossing.`;
+                status.style.color = "#f85149";
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
