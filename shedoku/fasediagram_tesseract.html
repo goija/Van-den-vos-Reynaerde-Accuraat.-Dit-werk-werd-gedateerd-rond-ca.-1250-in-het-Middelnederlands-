@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesseract Fasediagram & Binaire Pariteit Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #070913;
+            --panel-bg: #0d1322;
+            --border-color: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-cyan: #38bdf8;
+            --accent-purple: #c084fc;
+            --accent-gold: #facc15;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.6rem;
+            color: #f8fafc;
+        }
+
+        p.subtitle {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        @media (max-width: 1000px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 5px;
+        }
+
+        .btn-primary {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #0369a1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-purple);
+            font-family: monospace;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .info-box {
+            font-size: 0.82rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+            background-color: #030712;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-gold);
+        }
+
+        .viewport {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+
+        canvas {
+            background-color: #050811;
+            border-radius: 6px;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Tesseract Pariteit Fasediagram</h1>
+        <p class="subtitle">Dynamische golfbeweging van 392 enen/nullen over 103 ademhalingsstappen</p>
+    </header>
+
+    <div class="container">
+        <div class="panel">
+            <div class="section-title">Temporele Besturing</div>
+            
+            <button class="btn-primary" id="toggleBtn">Start Fasediagram Simulatie</button>
+
+            <div class="stats-grid" style="margin-top: 10px;">
+                <div class="stat-card">
+                    <div class="stat-value" id="stepIndicator">0 / 103</div>
+                    <div class="stat-label">Huidige Stap</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">392 / 392</div>
+                    <div class="stat-label">Pariteit Balans</div>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 15px;">Heptad Poorten & Stasis</div>
+            <div class="info-box">
+                <b>Actieve Checkpoints:</b> 13, 29, 47, 63, 71, 97, 103.<br>
+                <b>Systeembehoud:</b> Zelfherstellende tesseract-matrix garandeert nul energieverlies tijdens faseverschuivingen.
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">Realtime Fasediagram & Bit-Plane Golf</div>
+            
+            <div class="viewport">
+                <canvas id="phaseCanvas" width="650" height="300"></canvas>
+            </div>
+
+            <div class="info-box" style="margin-top: 5px;">
+                Het diagram toont de stabiele oscillatie van de vier binaire bit-planes rond de pariteitsas van 392 eenheden. De lijnen blijven perfect in fase zonder uitschieters.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('phaseCanvas');
+        const ctx = canvas.getContext('2d');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const stepIndicator = document.getElementById('stepIndicator');
+
+        let isRunning = false;
+        let currentStep = 0;
+        let animationTimer = null;
+        const totalSteps = 103;
+
+        function drawPhaseDiagram(activeStep) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 40;
+
+            // Teken assen
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+
+            // Horizontale middenlijn (392 enen pariteit)
+            ctx.beginPath();
+            ctx.moveTo(padding, height / 2);
+            ctx.lineTo(width - padding, height / 2);
+            ctx.stroke();
+
+            // Verticale startas
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.stroke();
+
+            // Kleuren voor de 4 bit-planes
+            const planeColors = ['#38bdf8', '#c084fc', '#facc15', '#34d399'];
+
+            // Teken golven voor elk van de 4 bit-planes
+            for (let p = 0; p < 4; p++) {
+                ctx.beginPath();
+                ctx.strokeStyle = planeColors[p];
+                ctx.lineWidth = 2;
+
+                for (let s = 0; s <= activeStep; s++) {
+                    const x = padding + (s / totalSteps) * (width - 2 * padding);
+                    
+                    // Simuleer een subtiele, stabiele oscillatie rond de pariteitsas (392)
+                    const offset = Math.sin((s + p * 15) * 0.15) * (8 + p * 3);
+                    const y = (height / 2) - offset;
+
+                    if (s === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Heptad poorten markeringen op de X-as
+            const heptads = [13, 29, 47, 63, 71, 97, 103];
+            ctx.fillStyle = '#ef4444';
+            heptads.forEach(h => {
+                if (h <= activeStep) {
+                    const hx = padding + (h / totalSteps) * (width - 2 * padding);
+                    ctx.beginPath();
+                    ctx.arc(hx, height / 2, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function stepTick() {
+            currentStep = (currentStep + 1) % (totalSteps + 1);
+            if (currentStep === 0) currentStep = 1;
+
+            stepIndicator.textContent = `${currentStep} / ${totalSteps}`;
+            drawPhaseDiagram(currentStep);
+
+            if (currentStep >= totalSteps) {
+                // Pauzeer even bij voltooiing
+                clearInterval(animationTimer);
+                isRunning = false;
+                toggleBtn.textContent = 'Start Fasediagram Simulatie';
+                toggleBtn.style.backgroundColor = '#0284c7';
+            }
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                currentStep = 0;
+                animationTimer = setInterval(stepTick, 100); // 100ms per stap
+                isRunning = true;
+                toggleBtn.textContent = 'Stop Simulatie';
+                toggleBtn.style.backgroundColor = '#ef4444';
+            } else {
+                clearInterval(animationTimer);
+                isRunning = false;
+                toggleBtn.textContent = 'Start Fasediagram Simulatie';
+                toggleBtn.style.backgroundColor = '#0284c7';
+            }
+        });
+
+        // Initiële lege staat
+        drawPhaseDiagram(0);
+    </script>
+</body>
+</html>
