@@ -119,9 +119,7 @@
 
         .grid-18x13 {
             display: grid;
-            /* 18 columns + 1 header column = 19 columns */
             grid-template-columns: 35px repeat(18, var(--cell-size));
-            /* 13 rows + 1 header row = 14 rows */
             grid-template-rows: 35px repeat(13, var(--cell-size));
             gap: 2px;
             background-color: var(--border-color);
@@ -210,8 +208,7 @@
         <div class="panel">
             <div class="section-title">18 × 13 Raster Topologie</div>
             <div class="matrix-container">
-                <div class="grid-18x13" id="matrixGrid">
-                    </div>
+                <div class="grid-18x13" id="matrixGrid"></div>
             </div>
         </div>
     </div>
@@ -225,18 +222,15 @@
         let gainNode = null;
         let isAudioPlaying = false;
 
-        // Initialiseer het 18x13 rooster
         function initMatrix() {
             const grid = document.getElementById('matrixGrid');
             grid.innerHTML = '';
 
-            // Top-left corner
             const corner = document.createElement('div');
             corner.className = 'cell header';
             corner.textContent = 'r\\c';
             grid.appendChild(corner);
 
-            // Column headers (0 to 17)
             for (let c = 0; c < cols; c++) {
                 const th = document.createElement('div');
                 th.className = 'cell header';
@@ -244,7 +238,6 @@
                 grid.appendChild(th);
             }
 
-            // Rows (0 to 12)
             for (let r = 0; r < rows; r++) {
                 const rh = document.createElement('div');
                 rh.className = 'cell header';
@@ -255,20 +248,16 @@
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     
-                    // Bereken een initiële waarde op basis van matrix coördinaten
                     const val = (r * c) % 20;
                     cell.textContent = val;
 
                     cell.addEventListener('click', () => {
-                        // Toggle active state
                         document.querySelectorAll('.cell').forEach(el => el.classList.remove('active'));
                         cell.classList.add('active');
 
-                        // Update telemetrie
                         updateTelemetry(r, c, val);
 
-                        // Pas audio frequentie aan indien actief
-                        if (isAudioPlaying && oscillator) {
+                        if (isAudioPlaying && oscillator && audioCtx) {
                             const base = parseFloat(document.getElementById('baseFreq').value);
                             const mod = parseInt(document.getElementById('modFactor').value);
                             const freq = base + ((val + 1) * (mod * 2.5));
@@ -290,43 +279,52 @@
             `;
         }
 
-        // Web Audio API initialisatie
-        document.getElementById('audioToggle').addEventListener('click', () => {
+        document.getElementById('audioToggle').addEventListener('click', async () => {
+            const btn = document.getElementById('audioToggle');
+            
             if (!isAudioPlaying) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                oscillator = audioCtx.createOscillator();
-                gainNode = audioCtx.createGain();
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioCtx.state === 'suspended') {
+                        await audioCtx.resume();
+                    }
 
-                oscillator.type = 'sine';
-                const base = parseFloat(document.getElementById('baseFreq').value);
-                oscillator.frequency.setValueAtTime(base, audioCtx.currentTime);
+                    oscillator = audioCtx.createOscillator();
+                    gainNode = audioCtx.createGain();
 
-                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    oscillator.type = 'sine';
+                    const base = parseFloat(document.getElementById('baseFreq').value);
+                    oscillator.frequency.setValueAtTime(base, audioCtx.currentTime);
 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
+                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
 
-                oscillator.start();
-                isAudioPlaying = true;
-                document.getElementById('audioToggle').textContent = 'Stop Audio Synthese';
-                document.getElementById('audioToggle').style.backgroundColor = '#ef4444';
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+
+                    oscillator.start();
+                    isAudioPlaying = true;
+                    btn.textContent = 'Stop Audio Synthese';
+                    btn.style.backgroundColor = '#ef4444';
+                } catch (e) {
+                    console.error("AudioContext kon niet worden gestart:", e);
+                }
             } else {
                 if (oscillator) {
-                    oscillator.stop();
+                    try { oscillator.stop(); } catch(e){}
                     oscillator.disconnect();
                 }
-                if (audioCtx) {
-                    audioCtx.close();
+                if (audioCtx && audioCtx.state !== 'closed') {
+                    await audioCtx.close();
                 }
                 isAudioPlaying = false;
-                document.getElementById('audioToggle').textContent = 'Start Audio Synthese';
-                document.getElementById('audioToggle').style.backgroundColor = '#0284c7';
+                btn.textContent = 'Start Audio Synthese';
+                btn.style.backgroundColor = '#0284c7';
             }
         });
 
         document.getElementById('baseFreq').addEventListener('input', (e) => {
             document.getElementById('freqVal').textContent = e.target.value;
-            if (isAudioPlaying && oscillator) {
+            if (isAudioPlaying && oscillator && audioCtx) {
                 oscillator.frequency.setTargetAtTime(parseFloat(e.target.value), audioCtx.currentTime, 0.05);
             }
         });
@@ -335,7 +333,12 @@
             document.getElementById('modVal').textContent = e.target.value;
         });
 
-        window.onload = initMatrix;
+        // Automatisch initialiseren bij laden van de pagina
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMatrix);
+        } else {
+            initMatrix();
+        }
     </script>
 </body>
 </html>
