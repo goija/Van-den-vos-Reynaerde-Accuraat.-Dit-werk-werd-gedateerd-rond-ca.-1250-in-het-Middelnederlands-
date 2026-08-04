@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synchronotron 7,35 Hz Metronoom & Holomind Perceiver</title>
+    <style>
+        :root {
+            --bg-color: #050811;
+            --panel-bg: #0f172a;
+            --border-color: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-cyan: #38bdf8;
+            --accent-purple: #c084fc;
+            --accent-gold: #facc15;
+            --pulse-glow: rgba(56, 189, 248, 0.4);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+            color: #f8fafc;
+        }
+
+        p.subtitle {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 5px;
+        }
+
+        .btn-primary {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-primary:hover {
+            background-color: #0369a1;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .visualizer-box {
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Pulsing Metronome Core */
+        .metronome-core {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, rgba(56,189,248,0.1) 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-family: monospace;
+            color: #000;
+            box-shadow: 0 0 25px var(--pulse-glow);
+            transition: transform 0.08s ease-in-out;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-purple);
+            font-family: monospace;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .bmu-info {
+            font-size: 0.82rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+            background-color: #030712;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Synchronotron 7,35 Hz Metronoom</h1>
+        <p class="subtitle">Holomind Perceiver & Torus Datastroom Kalibratie</p>
+    </header>
+
+    <div class="container">
+        <div class="panel">
+            <div class="section-title">Temporele Besturing</div>
+            
+            <button class="btn-primary" id="startPulseBtn">Start 7,35 Hz Puls</button>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="freqDisplay">7.35 Hz</div>
+                    <div class="stat-label">Doel Frequentie</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pulseCount">0</div>
+                    <div class="stat-label">Totaal Pulsen</div>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 10px;">Geometrische Assen</div>
+            <div class="bmu-info">
+                <b>Pentagoon-as:</b> 108° (Star Masters Sirius B-52)<br>
+                <b>Kosmische Constante:</b> 29° (Crystal Output)<br>
+                <b>Verticale 11-as:</b> Corpus Callosum Synchronisatie
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">Holomind Torus & BMU Reciprociteit</div>
+            
+            <div class="visualizer-box">
+                <div class="metronome-core" id="metronomeCore">7.35 Hz</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">BMU 202</div>
+                    <div class="stat-label">Zender (Aarde - V4, H19)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">BMU 86</div>
+                    <div class="stat-label">Ontvanger (Venus - V20, H15)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let audioCtx = null;
+        let pulseTimer = null;
+        let totalPulses = 0;
+
+        const startBtn = document.getElementById('startPulseBtn');
+        const core = document.getElementById('metronomeCore');
+        const pulseCounter = document.getElementById('pulseCount');
+
+        // Interval voor 7,35 Hz = 1 / 7.35 ≈ 136.05 ms per puls
+        const intervalMs = 1000 / 7.35;
+
+        function playClick() {
+            if (!audioCtx) return;
+            
+            // Genereer een korte binaurale / harmonische klikfrequentie
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(441, audioCtx.currentTime); // 441 matrix resonantie
+                
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.04);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch (e) {
+                console.error("Audio synthese fout:", e);
+            }
+        }
+
+        function triggerPulse() {
+            totalPulses++;
+            pulseCounter.textContent = totalPulses;
+            
+            playClick();
+
+            // Visuele animatie van de kern
+            core.style.transform = 'scale(1.15)';
+            core.style.boxShadow = '0 0 45px rgba(56, 189, 248, 0.8)';
+            
+            setTimeout(() => {
+                core.style.transform = 'scale(1)';
+                core.style.boxShadow = '0 0 25px var(--pulse-glow)';
+            }, 60);
+        }
+
+        startBtn.addEventListener('click', async () => {
+            if (!isRunning) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                pulseTimer = setInterval(triggerPulse, intervalMs);
+                isRunning = true;
+                startBtn.textContent = 'Stop 7,35 Hz Puls';
+                startBtn.style.backgroundColor = '#ef4444';
+            } else {
+                clearInterval(pulseTimer);
+                if (audioCtx && audioCtx.state !== 'closed') {
+                    await audioCtx.close();
+                }
+                isRunning = false;
+                startBtn.textContent = 'Start 7,35 Hz Puls';
+                startBtn.style.backgroundColor = '#0284c7';
+            }
+        });
+    </script>
+</body>
+</html>
