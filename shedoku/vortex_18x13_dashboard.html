@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORTEX 18×13 Matrix & Audio Synthese Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #131c2e;
+            --border-color: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.2);
+            --active-cell: #0284c7;
+            --cell-size: 34px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.6rem;
+            color: #f8fafc;
+        }
+
+        p.subtitle {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 5px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-color);
+        }
+
+        .btn-primary {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #0369a1;
+        }
+
+        .matrix-container {
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .grid-18x13 {
+            display: grid;
+            /* 18 columns + 1 header column = 19 columns */
+            grid-template-columns: 35px repeat(18, var(--cell-size));
+            /* 13 rows + 1 header row = 14 rows */
+            grid-template-rows: 35px repeat(13, var(--cell-size));
+            gap: 2px;
+            background-color: var(--border-color);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .cell {
+            background-color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #64748b;
+            user-select: none;
+            cursor: pointer;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .cell.header {
+            background-color: #1e293b;
+            color: #94a3b8;
+            font-weight: bold;
+            cursor: default;
+        }
+
+        .cell:not(.header):hover {
+            background-color: #1e293b;
+            color: var(--accent-color);
+        }
+
+        .cell.active {
+            background-color: var(--active-cell);
+            color: #ffffff;
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .telemetry-box {
+            background-color: #080c14;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #38bdf8;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>VORTEX 18×13 Matrix Dashboard</h1>
+        <p class="subtitle">Geïntegreerde matrix-raster simulatie & wiskundige audio-synthese</p>
+    </header>
+
+    <div class="dashboard-layout">
+        <div class="panel">
+            <div class="section-title">Synthese Besturing</div>
+            
+            <button class="btn-primary" id="audioToggle">Start Audio Synthese</button>
+
+            <div class="control-group">
+                <label for="baseFreq">Basis Frequentie: <span id="freqVal">220</span> Hz</label>
+                <input type="range" id="baseFreq" min="55" max="880" value="220" step="1">
+            </div>
+
+            <div class="control-group">
+                <label for="modFactor">Modulatie Factor (Mod 20): <span id="modVal">4</span></label>
+                <input type="range" id="modFactor" min="1" max="20" value="4" step="1">
+            </div>
+
+            <div class="section-title" style="margin-top: 10px;">Telemetrie & Status</div>
+            <div class="telemetry-box" id="telemetryData">
+                <div>Status: Systeem Standby</div>
+                <div>Actieve Cel: Geen</div>
+                <div>Gerekende Waarde: --</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">18 × 13 Raster Topologie</div>
+            <div class="matrix-container">
+                <div class="grid-18x13" id="matrixGrid">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cols = 18;
+        const rows = 13;
+        
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        let isAudioPlaying = false;
+
+        // Initialiseer het 18x13 rooster
+        function initMatrix() {
+            const grid = document.getElementById('matrixGrid');
+            grid.innerHTML = '';
+
+            // Top-left corner
+            const corner = document.createElement('div');
+            corner.className = 'cell header';
+            corner.textContent = 'r\\c';
+            grid.appendChild(corner);
+
+            // Column headers (0 to 17)
+            for (let c = 0; c < cols; c++) {
+                const th = document.createElement('div');
+                th.className = 'cell header';
+                th.textContent = c;
+                grid.appendChild(th);
+            }
+
+            // Rows (0 to 12)
+            for (let r = 0; r < rows; r++) {
+                const rh = document.createElement('div');
+                rh.className = 'cell header';
+                rh.textContent = r;
+                grid.appendChild(rh);
+
+                for (let c = 0; c < cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    // Bereken een initiële waarde op basis van matrix coördinaten
+                    const val = (r * c) % 20;
+                    cell.textContent = val;
+
+                    cell.addEventListener('click', () => {
+                        // Toggle active state
+                        document.querySelectorAll('.cell').forEach(el => el.classList.remove('active'));
+                        cell.classList.add('active');
+
+                        // Update telemetrie
+                        updateTelemetry(r, c, val);
+
+                        // Pas audio frequentie aan indien actief
+                        if (isAudioPlaying && oscillator) {
+                            const base = parseFloat(document.getElementById('baseFreq').value);
+                            const mod = parseInt(document.getElementById('modFactor').value);
+                            const freq = base + ((val + 1) * (mod * 2.
