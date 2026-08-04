@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesseract 84⁴ & Getal 103 — Temporele Metronoom</title>
+    <style>
+        :root {
+            --bg-color: #070913;
+            --panel-bg: #0d1322;
+            --border-color: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-cyan: #38bdf8;
+            --accent-purple: #c084fc;
+            --accent-gold: #facc15;
+            --pulse-glow: rgba(56, 189, 248, 0.4);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+            color: #f8fafc;
+        }
+
+        p.subtitle {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 5px;
+        }
+
+        .btn-primary {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-primary:hover {
+            background-color: #0369a1;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .visualizer-box {
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            height: 260px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            gap: 12px;
+        }
+
+        .metronome-core {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, rgba(56,189,248,0.1) 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #000;
+            box-shadow: 0 0 25px var(--pulse-glow);
+            transition: transform 0.06s ease-in-out;
+        }
+
+        .binary-display {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: var(--accent-gold);
+            letter-spacing: 2px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background-color: #030712;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-purple);
+            font-family: monospace;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .info-box {
+            font-size: 0.82rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+            background-color: #030712;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Tesseract 84⁴ & Getal 103 Metronoom</h1>
+        <p class="subtitle">Ademhalingscyclus & 1,72 Hz Binaire Datastroom</p>
+    </header>
+
+    <div class="container">
+        <div class="panel">
+            <div class="section-title">Temporele Besturing</div>
+            
+            <button class="btn-primary" id="toggleBtn">Start 1,72 Hz Puls</button>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">1,72 Hz</div>
+                    <div class="stat-label">Frequentie (103/60s)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stepCounter">0 / 103</div>
+                    <div class="stat-label">Huidige Stap</div>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 10px;">Geometrische Sleutels</div>
+            <div class="info-box">
+                <b>Octaaf 6, Strand 14:</b> Infinite Mind<br>
+                <b>Synchrone Matrix:</b> Coördinaat V16, H17<br>
+                <b>Kin 103:</b> De Dromer (Blue Crystal Night)
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">Dynamische Binaire Ademhalingspunt</div>
+            
+            <div class="visualizer-box">
+                <div class="metronome-core" id="coreCircle">103</div>
+                <div class="binary-display" id="binaryDisplay">0000 (Noord)</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="windDirection">Noord (N)</div>
+                    <div class="stat-label">Windstreek / Bit</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">588 ms</div>
+                    <div class="stat-label">Interval per Stap</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let audioCtx = null;
+        let timer = null;
+        let currentStep = 0;
+        const totalSteps = 103;
+
+        // Binaire windstreek mapping
+        const windStreaks = [
+            { code: "0000", name: "Noord (N)" },
+            { code: "1111", name: "Oost (O)" },
+            { code: "1010", name: "Zuid (Z)" },
+            { code: "0101", name: "West (W)" }
+        ];
+
+        const toggleBtn = document.getElementById('toggleBtn');
+        const coreCircle = document.getElementById('coreCircle');
+        const stepCounter = document.getElementById('stepCounter');
+        const binaryDisplay = document.getElementById('binaryDisplay');
+        const windDirection = document.getElementById('windDirection');
+
+        // Interval voor 1,72 Hz (103 stappen per 60 seconden ≈ 582,5 ms per stap)
+        const intervalMs = (60 * 1000) / totalSteps;
+
+        function playHarmonicTone() {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime); // Basistoon resonantie
+                
+                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } catch (e) {
+                console.error("Audio fout:", e);
+            }
+        }
+
+        function pulseStep() {
+            currentStep = (currentStep + 1) % (totalSteps + 1);
+            if (currentStep === 0) currentStep = 1;
+
+            stepCounter.textContent = `${currentStep} / ${totalSteps}`;
+            
+            // Kies windstreek op basis van stap modulo 4
+            const streak = windStreaks[(currentStep - 1) % 4];
+            binaryDisplay.textContent = streak.code;
+            windDirection.textContent = streak.name;
+
+            playHarmonicTone();
+
+            // Visuele puls
+            coreCircle.style.transform = 'scale(1.2)';
+            coreCircle.style.boxShadow = '0 0 40px rgba(56, 189, 248, 0.9)';
+            
+            setTimeout(() => {
+                coreCircle.style.transform = 'scale(1)';
+                coreCircle.style.boxShadow = '0 0 25px var(--pulse-glow)';
+            }, 80);
+        }
+
+        toggleBtn.addEventListener('click', async () => {
+            if (!isRunning) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                timer = setInterval(pulseStep, intervalMs);
+                isRunning = true;
+                toggleBtn.textContent = 'Stop 1,72 Hz Puls';
+                toggleBtn.style.backgroundColor = '#ef4444';
+            } else {
+                clearInterval(timer);
+                if (audioCtx && audioCtx.state !== 'closed') {
+                    await audioCtx.close();
+                }
+                isRunning = false;
+                toggleBtn.textContent = 'Start 1,72 Hz Puls';
+                toggleBtn.style.backgroundColor = '#0284c7';
+            }
+        });
+    </script>
+</body>
+</html>
