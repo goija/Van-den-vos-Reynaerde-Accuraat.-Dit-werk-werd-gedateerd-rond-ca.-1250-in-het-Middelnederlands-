@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORTEX 441-Step Heptad & Möbius Temporal Metronome</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #131c2e;
+            --accent-purple: #9333ea;
+            --accent-cyan: #06b6d4;
+            --accent-gold: #f59e0b;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            color: var(--accent-cyan);
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--accent-gold);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            padding-bottom: 8px;
+            text-align: center;
+        }
+
+        /* Canvas styling */
+        canvas {
+            background: #05080f;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Telemetry metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .metric-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .metric-box.cyan { border-left-color: var(--accent-cyan); }
+        .metric-box.gold { border-left-color: var(--accent-gold); }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-top: 4px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        button {
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: #7e22ce;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.secondary {
+            background: #374151;
+        }
+
+        button.secondary:hover {
+            background: #4b5563;
+        }
+
+        /* Möbius strip strips status bar */
+        .mobius-bars {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .mobius-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .sheet-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .sheet-pos { background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan); }
+        .sheet-neg { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>VORTEX OMNI-BRIDGE</h1>
+        <p class="subtitle">441-Step Heptad Metronome & Four Jiazi Möbius Synchronization Engine</p>
+    </header>
+
+    <div class="dashboard">
+        <div class="card">
+            <h2>441-Step Metronome (7.35 Hz)</h2>
+            <canvas id="metronomeCanvas" width="380" height="220"></canvas>
+            
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <div class="metric-label">Stap Index</div>
+                    <div class="metric-value" id="stepDisplay">1 / 441</div>
+                </div>
+                <div class="metric-box cyan">
+                    <div class="metric-label">Tijdstempel</div>
+                    <div class="metric-value" id="timeDisplay">0.00 s</div>
+                </div>
+                <div class="metric-box gold">
+                    <div class="metric-label">Heptad Poort</div>
+                    <div class="metric-value" id="heptadDisplay">Poort 1 (0)</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">Interval ($\Delta t$)</div>
+                    <div class="metric-value">0.136 s</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="toggleBtn" onclick="toggleEngine()">Pauzeer</button>
+                <button class="secondary" onclick="resetEngine()">Reset</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Jiazi Möbius Phase-Shifts</h2>
+            <canvas id="mobiusCanvas" width="380" height="220"></canvas>
+
+            <div class="mobius-bars">
+                <div class="mobius-row">
+                    <span>Jaar-band (Cyclus 78)</span>
+                    <span class="sheet-badge sheet-neg" id="yearSheet">- Sheet (Even)</span>
+                </div>
+                <div class="mobius-row">
+                    <span>Maand-band</span>
+                    <span class="sheet-badge sheet-pos" id="monthSheet">+ Sheet</span>
+                </div>
+                <div class="mobius-row">
+                    <span>Dag-band</span>
+                    <span class="sheet-badge sheet-pos" id="daySheet">+ Sheet</span>
+                </div>
+                <div class="mobius-row">
+                    <span>Uur-band</span>
+                    <span class="sheet-badge sheet-neg" id="hourSheet">- Sheet</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System Parameters
+        const TOTAL_STEPS = 441;
+        const TOTAL_DURATION = 60.0; // seconds
+        const DT = TOTAL_DURATION / TOTAL_STEPS; // ~0.136054s
+        
+        let currentStep = 1;
+        let isRunning = true;
+        let lastTime = performance.now();
+        let accumulatedTime = 0;
+        
+        // Canvas contexts
+        const mCanvas = document.getElementById('metronomeCanvas');
+        const mCtx = mCanvas.getContext('2d');
+        const mobCanvas = document.getElementById('mobiusCanvas');
+        const mobCtx = mobCanvas.getContext('2d');
+
+        // Checkpoints / Heptad Gates (Every 63 steps)
+        const checkpoints = [1, 63, 126, 189, 252, 315, 378, 441];
+
+        function updateTelemetry() {
+            const t = (currentStep - 1) * DT;
+            
+            // DOM Updates
+            document.getElementById('stepDisplay').innerText = `${currentStep} / ${TOTAL_STEPS}`;
+            document.getElementById('timeDisplay').innerText = `${t.toFixed(2)} s`;
+            
+            // Find current Heptad gate
+            let gateIndex = 1;
+            for (let i = 0; i < checkpoints.length; i++) {
+                if (currentStep >= checkpoints[i]) {
+                    gateIndex = i + 1;
+                }
+            }
+            document.getElementById('heptadDisplay').innerText = `Poort ${gateIndex} (${Math.floor((currentStep-1)/63)})`;
+            
+            // Dynamic Mobius sheet simulation shifts based on step modulo transitions
+            const yearNeg = true; // Cycle 78 is even (-)
+            const monthState = (Math.floor(currentStep / 110) % 2 === 0);
+            const dayState = (Math.floor(currentStep / 55) % 2 !== 0);
+            const hourState = (Math.floor(currentStep / 20) % 2 === 0);
+
+            updateSheetBadge('monthSheet', monthState);
+            updateSheetBadge('daySheet', dayState);
+            updateSheetBadge('hourSheet', hourState);
+        }
+
+        function updateSheetBadge(id, isPos) {
+            const el = document.getElementById(id);
+            if (isPos) {
+                el.className = 'sheet-badge sheet-pos';
+                el.innerText = '+ Sheet';
+            } else {
+                el.className = 'sheet-badge sheet-neg';
+                el.innerText = '- Sheet';
+            }
+        }
+
+        function drawMetronome() {
+            mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+            
+            const cx = mCanvas.width / 2;
+            const cy = mCanvas.height / 2 + 10;
+            const radius = 80;
+
+            // Draw background circle (Tesseract ring)
+            mCtx.beginPath();
+            mCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            mCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            mCtx.lineWidth = 6;
+            mCtx.stroke();
+
+            // Draw progress arc
+            const progress = currentStep / TOTAL_STEPS;
+            mCtx.beginPath();
+            mCtx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + (progress * Math.PI * 2));
+            mCtx.strokeStyle = '#06b6d4';
+            mCtx.lineWidth = 6;
+            mCtx.stroke();
+
+            // Draw Heptad nodes on the ring
+            checkpoints.forEach((cp, idx) => {
+                const angle = -Math.PI / 2 + ((cp / TOTAL_STEPS) * Math.PI * 2);
+                const nx = cx + Math.cos(angle) * radius;
+                const ny = cy + Math.sin(angle) * radius;
+
+                mCtx.beginPath();
+                mCtx.arc(nx, ny, currentStep >= cp ? 5 : 3, 0, Math.PI * 2);
+                mCtx.fillStyle = currentStep >= cp ? '#f59e0b' : 'rgba(255,255,255,0.3)';
+                mCtx.fill();
+            });
+
+            // Center Text: Current Frequency & Steps
+            mCtx.fillStyle = '#f3f4f6';
+            mCtx.font = 'bold 20pxSegoe UI';
+            mCtx.textAlign = 'center';
+            mCtx.fillText(`${(currentStep * (7.35 / TOTAL_STEPS) * 60).toFixed(0)}°`, cx, cy - 5);
+            
+            mCtx.fillStyle = '#9ca3af';
+            mCtx.font = '12px Segoe UI';
+            mCtx.fillText('7.35 Hz Tesseract', cx, cy + 20);
+        }
+
+        let mobiusAngle = 0;
+        function drawMobius() {
+            mobCtx.clearRect(0, 0, mobCanvas.width, mobCanvas.height);
+            
+            const cx = mobCanvas.width / 2;
+            const cy = mobCanvas.height / 2;
+            
+            mobiusAngle += 0.02;
+
+            // Draw 4 Concentric / Phase-shifted Möbius loops representation (Lissajous / Torus projection)
+            const colors = ['#ef4444', '#06b6d4', '#10b981', '#f59e0b'];
+            
+            for (let i = 0; i < 4; i++) {
+                mobCtx.beginPath();
+                const scale = 50 + i * 15;
+                const phaseOffset = i * Math.PI / 2 + mobiusAngle;
+
+                for (let a = 0; a < Math.PI * 2; a += 0.05) {
+                    // Möbius parametric projection approximation
+                    const x = cx + scale * Math.cos(a + phaseOffset) * (1 + 0.3 * Math.sin(2 * a));
+                    const y = cy + (scale * 0.7) * Math.sin(a * 2 + mobiusAngle * 0.5);
+                    
+                    if (a === 0) mobCtx.moveTo(x, y);
+                    else mobCtx.lineTo(x, y);
+                }
+                
+                mobCtx.strokeStyle = colors[i];
+                mobCtx.lineWidth = 2;
+                mobCtx.stroke();
+            }
+
+            // Center Hub label
+            mobCtx.fillStyle = 'rgba(255,255,255,0.7)';
+            mobCtx.font = '11px Segoe UI';
+            mobCtx.textAlign = 'center';
+            mobCtx.fillText('4 Jiazi Möbius Vectors', cx, cy - 90);
+        }
+
+        function loop(timestamp) {
+            if (isRunning) {
+                const delta = (timestamp - lastTime) / 1000;
+                accumulatedTime += delta;
+
+                // Step interval pacing: Total 60s for 441 steps -> DT per step
+                if (accumulatedTime >= DT) {
+                    accumulatedTime = 0;
+                    currentStep++;
+                    if (currentStep > TOTAL_STEPS) {
+                        currentStep = 1; // Loop back
+                    }
+                    updateTelemetry();
+                }
+            }
+            
+            lastTime = timestamp;
+            drawMetronome();
+            drawMobius();
+            requestAnimationFrame(loop);
+        }
+
+        function toggleEngine() {
+            isRunning = !isRunning;
+            document.getElementById('toggleBtn').innerText = isRunning ? 'Pauzeer' : 'Hervat';
+        }
+
+        function resetEngine() {
+            currentStep = 1;
+            accumulatedTime = 0;
+            updateTelemetry();
+        }
+
+        // Initialize
+        updateTelemetry();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
