@@ -271,4 +271,71 @@
                         if (isAudioPlaying && oscillator) {
                             const base = parseFloat(document.getElementById('baseFreq').value);
                             const mod = parseInt(document.getElementById('modFactor').value);
-                            const freq = base + ((val + 1) * (mod * 2.
+                            const freq = base + ((val + 1) * (mod * 2.5));
+                            oscillator.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+                        }
+                    });
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function updateTelemetry(r, c, val) {
+            const telemetry = document.getElementById('telemetryData');
+            telemetry.innerHTML = `
+                <div>Status: Actieve Resonantie</div>
+                <div>Coördinaten: [Rij ${r}, Kolom ${c}]</div>
+                <div>Matrix Waarde: ${val} (Mod 20)</div>
+            `;
+        }
+
+        // Web Audio API initialisatie
+        document.getElementById('audioToggle').addEventListener('click', () => {
+            if (!isAudioPlaying) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                const base = parseFloat(document.getElementById('baseFreq').value);
+                oscillator.frequency.setValueAtTime(base, audioCtx.currentTime);
+
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                isAudioPlaying = true;
+                document.getElementById('audioToggle').textContent = 'Stop Audio Synthese';
+                document.getElementById('audioToggle').style.backgroundColor = '#ef4444';
+            } else {
+                if (oscillator) {
+                    oscillator.stop();
+                    oscillator.disconnect();
+                }
+                if (audioCtx) {
+                    audioCtx.close();
+                }
+                isAudioPlaying = false;
+                document.getElementById('audioToggle').textContent = 'Start Audio Synthese';
+                document.getElementById('audioToggle').style.backgroundColor = '#0284c7';
+            }
+        });
+
+        document.getElementById('baseFreq').addEventListener('input', (e) => {
+            document.getElementById('freqVal').textContent = e.target.value;
+            if (isAudioPlaying && oscillator) {
+                oscillator.frequency.setTargetAtTime(parseFloat(e.target.value), audioCtx.currentTime, 0.05);
+            }
+        });
+
+        document.getElementById('modFactor').addEventListener('input', (e) => {
+            document.getElementById('modVal').textContent = e.target.value;
+        });
+
+        window.onload = initMatrix;
+    </script>
+</body>
+</html>
