@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC DataChannel - Binaire Data Overdracht</title>
+    <style>
+        :root {
+            --bg-color: #0c1017;
+            --panel-bg: #131b26;
+            --panel-border: #223046;
+            --accent-blue: #00a8ff;
+            --accent-green: #00b894;
+            --text-main: #e2e8f0;
+            --text-muted: #8899a6;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h2 { color: var(--accent-blue); margin-top: 0; }
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #070a0f;
+            color: var(--text-main);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            box-sizing: border-box;
+        }
+        button {
+            background: linear-gradient(135deg, #0094ff, #0077cc);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        button:hover { background: linear-gradient(135deg, #00a8ff, #0088e6); }
+        .status {
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            background: rgba(255,118,117,0.2);
+            color: #ff7675;
+        }
+        .status.connected {
+            background: rgba(0,184,148,0.2);
+            color: var(--accent-green);
+        }
+        #log {
+            background: #070a0f;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>WebRTC DataChannel (Binaire Data / ArrayBuffer)</h2>
+    
+    <div class="panel">
+        <div>Status: <span id="connectionStatus" class="status">Niet verbonden</span></div>
+    </div>
+
+    <!-- Stap 1: Koppeling opzetten -->
+    <div class="panel">
+        <h3>1. Signalisatie & Verbinding</h3>
+        <p>Stap A: Persoon 1 maakt een Offer en deelt dit hieronder. Persoon 2 plakt dit in en genereert een Answer.</p>
+        <button id="createOfferBtn">Start als Initiator (Create Offer)</button>
+        <br><br>
+        <label>SDP Handshake (Offer / Answer):</label>
+        <textarea id="sdpConnectionBox" placeholder="Plak hier het SDP van de andere peer..."></textarea>
+        <button id="connectBtn">Verbinding Accepteren / Bevestigen</button>
+    </div>
+
+    <!-- Stap 2: Binaire Data Versturen -->
+    <div class="panel">
+        <h3>2. Binaire Data Verzenden (ArrayBuffer / Matrix Chunks)</h3>
+        <p>Verstuur willekeurige binaire data (bijv. sensorwaarden of matrixstructuren) via het DataChannel.</p>
+        <button id="sendBinaryBtn" disabled>Verstuur Binaire Matrix Buffer (Uint8Array)</button>
+    </div>
+
+    <!-- Logboek -->
+    <div class="panel">
+        <h3>Systeem Logboek</h3>
+        <div id="log">Systeem gereed...\n</div>
+    </div>
+</div>
+
+<script>
+    let pc;
+    let dataChannel;
+    let isInitiator = false;
+
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    const statusEl = document.getElementById('connectionStatus');
+    const sdpBox = document.getElementById('sdpConnectionBox');
+    const logEl = document.getElementById('log');
+    const sendBinaryBtn = document.getElementById('sendBinaryBtn');
+
+    function log(msg) {
+        logEl.innerHTML += `> ${msg}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // Initialiseer WebRTC PeerConnection
+    function createPeerConnection() {
+        if (pc) return;
+        pc = new RTCPeerConnection(configuration);
+
+        pc.onicecandidate = event => {
+            if (event.candidate === null) {
+                log("ICE gathering voltooid.");
+                sdpBox.value = JSON.stringify(pc.localDescription);
+            }
+        };
+    }
+
+    // Initiator: Maak Offer en DataChannel aan
+    document.getElementById('createOfferBtn').addEventListener('click', async () => {
+        isInitiator = true;
+        createPeerConnection();
+
+        dataChannel = pc.createDataChannel("binary-channel");
+        setupDataChannel();
+
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            log("Offer aangemaakt. Kopieer de SDP uit het veld en stuur dit naar de andere peer.");
+        } catch (err) {
+            log("Fout bij aanmaken offer: " + err);
+        }
+    });
+
+    // Ontvanger / Bevestiging van SDP
+    document.getElementById('connectBtn').addEventListener('click', async () => {
+        createPeerConnection();
+        const inputVal = sdpBox.value.trim();
+        if (!inputVal) {
+            alert("Plak eerst een geldig SDP object.");
+            return;
+        }
+
+        try {
+            const remoteDesc = JSON.parse(inputVal);
+            
+            if (remoteDesc.type === 'offer') {
+                pc.ondatachannel = event => {
+                    dataChannel = event.channel;
+                    setupDataChannel();
+                    log("DataChannel ontvangen van initiator.");
+                };
+
+                await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                log("Answer aangemaakt. Kopieer onderstaande SDP terug naar de initiator.");
+            } else if (remoteDesc.type === 'answer') {
+                await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
+                log("Remote answer succesvol ingesteld.");
+            }
+        } catch (err) {
+            log("Fout bij verwerken SDP: " + err);
+        }
+    });
+
+    // Configuratie van het DataChannel voor binaire overdracht
+    function setupDataChannel() {
+        // Belangrijk voor binaire datastromen in WebRTC
+        dataChannel.binaryType = "arraybuffer"; 
+
+        dataChannel.onopen = () => {
+            log("DataChannel GEOPEND en klaar voor binaire transmissie!");
+            statusEl.innerText = "Verbonden";
+            statusEl.classList.add("connected");
+            sendBinaryBtn.disabled = false;
+        };
+
+        dataChannel.onclose = () => {
+            log("DataChannel gesloten.");
+            statusEl.innerText = "Niet verbonden";
+            statusEl.classList.remove("connected");
+            sendBinaryBtn.disabled = true;
+        };
+
+        dataChannel.onmessage = event => {
+            if (event.data instanceof ArrayBuffer) {
+                // Ontvangen binaire data verwerken
+                const receivedView = new Uint8Array(event.data);
+                log(`Binaire data ontvangen! Lengte: ${receivedView.byteLength} bytes.`);
+                console.log("Ontvangen array buffer:", receivedView);
+            } else {
+                log(`Tekstbericht ontvangen: ${event.data}`);
+            }
+        };
+    }
+
+    // Binaire data (ArrayBuffer) verzenden
+    sendBinaryBtn.addEventListener('click', () => {
+        if (!dataChannel || dataChannel.readyState !== 'open') {
+            alert("DataChannel is niet open.");
+            return;
+        }
+
+        // Creëer een gesimuleerde binaire payload (bijv. een array van 441 bytes voor een kubus-matrix)
+        const bufferSize = 441;
+        const buffer = new ArrayBuffer(bufferSize);
+        const view = new Uint8Array(buffer);
+        
+        // Vul met willekeurige of gestructureerde data (bijv. tellers)
+        for (let i = 0; i < bufferSize; i++) {
+            view[i] = i % 256;
+        }
+
+        // Verstuur als binaire ArrayBuffer over het WebRTC DataChannel
+        dataChannel.send(buffer);
+        log(`Binaire ArrayBuffer van ${bufferSize} bytes verzonden over WebRTC.`);
+    });
+</script>
+
+</body>
+</html>
