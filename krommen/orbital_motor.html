@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinematica in de Praktijk: Hypocycloïdale Orbitalmotor</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151c2c;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --border-color: #2a3650;
+            --highlight: #f43f5e;
+            --roller-color: #10b981;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        @media (max-width: 850px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            background-color: #05070c;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: block;
+        }
+
+        .control-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        label span {
+            color: var(--accent-color);
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent-color);
+            width: 100%;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .info-box {
+            background-color: rgba(56, 189, 248, 0.05);
+            border-left: 3px solid var(--accent-color);
+            padding: 10px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Hydraulische Orbitalmotor Kinematica</h1>
+        <p class="subtitle">Simulatie van een 7-tands hypocycloïdale rotor met verkortingsfactor en equidistante offset</p>
+    </header>
+
+    <div class="main-container">
+        <div class="canvas-card">
+            <canvas id="simCanvas" width="500" height="500"></canvas>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <label>Verkortingsfactor (&eta;): <span id="valEta">85</span>%</label>
+                <input type="range" id="sliderEta" min="50" max="100" value="85">
+                <small style="color:#64748b; font-size:0.75rem;">Voorkomt scherpe cusps (knikken) ter voorkoming van slijtage.</small>
+            </div>
+
+            <div class="control-group">
+                <label>Offset-afstand (l): <span id="valOffset">12</span> px</label>
+                <input type="range" id="sliderOffset" min="0" max="25" value="12">
+                <small style="color:#64748b; font-size:0.75rem;">Equidistante verschuiving voor cilindrische pennen (rollers).</small>
+            </div>
+
+            <div class="control-group">
+                <label>Rotatiesnelheid: <span id="valSpeed">1x</span></label>
+                <input type="range" id="sliderSpeed" min="0.2" max="3" step="0.2" value="1">
+            </div>
+
+            <div class="btn-row">
+                <button id="btnPause">Pauze</button>
+                <button id="btnReset" style="background-color: #334155; color: #fff;">Reset</button>
+            </div>
+
+            <div class="info-box">
+                <b>Differentiaalmeetkunde:</b> De getoonde rotor combineert een hypocycloïdale basisvorm met een normaliter onmogelijke discontinue afgeleide. Door <i>verkorting</i> en <i>equidistante offset</i> ontstaat een glad profiel met rollende wrijving.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elementen
+        const sliderEta = document.getElementById('sliderEta');
+        const sliderOffset = document.getElementById('sliderOffset');
+        const sliderSpeed = document.getElementById('sliderSpeed');
+        const btnPause = document.getElementById('btnPause');
+        
+        const valEta = document.getElementById('valEta');
+        const valOffset = document.getElementById('valOffset');
+        const valSpeed = document.getElementById('valSpeed');
+
+        let isRunning = true;
+        let time = 0;
+
+        // Motorgegevens (Stator vs Rotor tandenverhouding: 8 tanden / 7 tanden)
+        const N_stator = 8;
+        const N_rotor = 7;
+        const R_base = 150; // Basisstraal
+
+        btnPause.addEventListener('click', () => {
+            isRunning = !isRunning;
+            btnPause.innerText = isRunning ? "Pauze" : "Hervat";
+            btnPause.style.backgroundColor = isRunning ? "var(--accent-color)" : "var(--highlight)";
+        });
+
+        document.getElementById('btnReset').addEventListener('click', () => {
+            time = 0;
+            sliderEta.value = 85;
+            sliderOffset.value = 12;
+            sliderSpeed.value = 1;
+        });
+
+        function updateLabels() {
+            valEta.innerText = sliderEta.value;
+            valOffset.innerText = sliderOffset.value;
+            valSpeed.innerText = sliderSpeed.value + "x";
+        }
+
+        function draw() {
+            updateLabels();
+            ctx.fillStyle = '#05070c';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            const eta = sliderEta.value / 100;
+            const offset = parseFloat(sliderOffset.value);
+            const speed = parseFloat(sliderSpeed.value);
+
+            if (isRunning) {
+                time += 0.015 * speed;
+            }
+
+            // 1. Teken Stator (Buitentandwiel met 8 vaste pennen/rollen)
+            ctx.strokeStyle = '#2a3650';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, R_base + 25, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Stator pennen
+            for (let i = 0; i < N_stator; i++) {
+                let angle = (i / N_stator) * Math.PI * 2;
+                let px = cx + (R_base) * Math.cos(angle);
+                let py = cy + (R_base) * Math.sin(angle);
+                
+                ctx.fillStyle = '#1e293b';
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(px, py, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // 2. Teken de Verkorte en Gemodificeerde Hypocycloïdale Rotor
+            // In een orbitalmotor wentelt en roteert de rotor simultaan
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            // Orbitale beweging van het rotorcentrum
+            let orbitRadius = R_base * (1/N_stator);
+            let orbitAngle = -time * (N_stator / N_rotor);
+            let rotX = orbitRadius * Math.cos(orbitAngle);
+            let rotY = orbitRadius * Math.sin(orbitAngle);
+
+            ctx.translate(rotX, rotY);
+            ctx.rotate(time); // Rotatie om eigen as
+
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            let steps = 400;
+            let points = [];
+
+            for (let i = 0; i <= steps; i++) {
+                let phi = (i / steps) * Math.PI * 2 * N_stator;
+                
+                // Formule voor verkorte hypocycloïde met equidistante offset (l)
+                // Gebaseerd op differentiaalmeetkundige normaalberekening
+                let a = R_base;
+                let b = a / N_stator;
+                
+                // Theoretische hypocycloïde coördinaten
+                let x = (a - b) * Math.cos(phi) + eta * b * Math.cos(((a - b) / b) * phi);
+                let y = (a - b) * Math.sin(phi) - eta * b * Math.sin(((a - b) / b) * phi);
+
+                // Normaalvector correctie voor offset (l) om fysieke rollers op te vangen
+                // Berekent de afgeleide (raaklijn) om de normaal te bepalen
+                let dx = -(a - b) * Math.sin(phi) - eta * (a - b) * Math.sin(((a - b) / b) * phi);
+                let dy =  (a - b) * Math.cos(phi) - eta * (a - b) * Math.cos(((a - b) / b) * phi);
+                let len = Math.sqrt(dx*dx + dy*dy) || 1;
+                
+                // Equidistante verschuiving langs de normaal
+                let nx = -dy / len;
+                let ny =  dx / len;
+
+                let finalX = x + offset * nx;
+                let finalY = y + offset * ny;
+
+                points.push({x: finalX, y: finalY});
+
+                if (i === 0) ctx.moveTo(finalX, finalY);
+                else ctx.lineTo(finalX, finalY);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Rotor hartlijn en middelpunt
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>
