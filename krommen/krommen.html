@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiskundige Taxonomie: Differentiaalmeetkunde en Kinematica</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --border-color: #334155;
+            --highlight: #f43f5e;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent-color);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            color: var(--accent-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            flex-grow: 1;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            background-color: #090d16;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--accent-color);
+        }
+
+        .math-note {
+            background-color: rgba(56, 189, 248, 0.05);
+            border-left: 3px solid var(--accent-color);
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            margin: 10px 0;
+            font-family: monospace;
+            border-radius: 0 6px 6px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Fundamenten van de Differentiaalmeetkunde en Kinematica</h1>
+        <p class="subtitle">Interactieve visualisaties van transcendente, parametrische en fractale krommen</p>
+    </header>
+
+    <div class="container">
+
+        <div class="card">
+            <h2>1. De "Siamese Tweeling": Sinus & Cycloïde</h2>
+            <p>Taldykin's Mechanisme: Twee identieke cirkels rollen synchroon (één erboven, één eronder). Het exacte middelpunt \(P_3\) van het verbindingslijnstuk tussen punten \(P_1\) en \(P_2\) beschrijft een zuivere sinuskromme.</p>
+            <div class="canvas-container">
+                <canvas id="canvas1" width="350" height="250"></canvas>
+            </div>
+            <div class="math-note">Normaal-eigenschap: P1-P2 verbindingslijn = Normaal op sinuskromme in P3</div>
+            <div class="controls">
+                <button id="btn1">Pauze</button>
+                <input type="range" id="slider1" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>2. Epi- en Hypocycloïden (Orbitalmotoren)</h2>
+            <p>Compacte overbrengingen via binnentandwielen. Om extreme slijtage bij de cusps (knikken) te vermijden, worden de wiskundige formules gecorrigeerd via een verkortingsfactor (\(\eta\)) en offset-verschuiving.</p>
+            <div class="canvas-container">
+                <canvas id="canvas2" width="350" height="250"></canvas>
+            </div>
+            <div class="math-note">Verkorte Epicycloïde: Rollende cirkel met radius r en offset l</div>
+            <div class="controls">
+                <span>Type:</span>
+                <button id="btn2-type">Wissel (Epi/Hypo)</button>
+                <input type="range" id="slider2" min="10" max="100" value="50">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>3. Catenary, Tractrix & Evolute</h2>
+            <p>De evolute van een tractrix is de catenary (kettinglijn) — de efficiëntste vorm voor koepels en hangende kabels (Hooke & Wren). De omhullende van normalen (evolute) vormt unieke afgeleide krommen.</p>
+            <div class="canvas-container">
+                <canvas id="canvas3" width="350" height="250"></canvas>
+            </div>
+            <div class="math-note">Catenary: y = a · cosh(x/a) | Minimaaloppervlak = Catenoïde</div>
+            <div class="controls">
+                <span>Zoom / Vorm:</span>
+                <input type="range" id="slider3" min="10" max="100" value="50">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>4. Lissajous-krommen ("Parametric Art")</h2>
+            <p>Uitgebreid bestudeerd door Nathaniel Bowditch (1815) en Jules Antoine Lissajous. Ze ontstaan door de superpositie van twee harmonische trillingen onder rechte hoeken.</p>
+            <div class="canvas-container">
+                <canvas id="canvas4" width="350" height="250"></canvas>
+            </div>
+            <div class="math-note">x = A sin(a·t + δ), y = B sin(b·t)</div>
+            <div class="controls">
+                <span>Frequentieverhouding a:b</span>
+                <input type="range" id="slider4" min="1" max="6" value="3" step="1">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>5. Ruimtevullende Hilbert-kromme</h2>
+            <p>In 1890 bewees Peano dat eendimensionale lijnen dezelfde kardinaliteit hebben als 2D-vlakken. Hilbert ontwierp de iteratieve geometrische visualisatie. Nergens differentieerbaar!</p>
+            <div class="canvas-container">
+                <canvas id="canvas5" width="350" height="250"></canvas>
+            </div>
+            <div class="math-note">Fractale dimensie D = 2. Grens tussen analyse en fractal-meetkunde.</div>
+            <div class="controls">
+                <span>Iteratiegraad (N):</span>
+                <input type="range" id="slider5" min="1" max="5" value="3" step="1">
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Algemene hulpfuncties ---
+        function clearCanvas(ctx, width, height) {
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        // --- 1. Siamese Tweeling: Sinus & Cycloïde ---
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        let t1 = 0;
+        let running1 = true;
+
+        function drawCard1() {
+            clearCanvas(ctx1, canvas1.width, canvas1.height);
+            const w = canvas1.width, h = canvas1.height;
+            const R = 25; // Straal van rollende cirkels
+            const startX = 40;
+            
+            // X-as verschuiving op basis van tijd
+            let shift = (t1 * 1.5) % (Math.PI * 2 * R);
+
+            // Teken geleide lijnen
+            ctx1.strokeStyle = '#334155';
+            ctx1.lineWidth = 1;
+            ctx1.beginPath();
+            ctx1.moveTo(0, h/2); ctx1.lineTo(w, h/2);
+            ctx1.stroke();
+
+            // Bereken P1, P2 en P3 paden
+            ctx1.beginPath();
+            ctx1.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+            ctx1.lineWidth = 2;
+            for(let x = 0; x < w; x+=2) {
+                let theta = (x + shift) / R;
+                // Bovenste cycloïde P1
+                let px1 = x;
+                let py1 = (h/2 - R) - (R * Math.sin(theta)); // Eenvoudige benadering voor visualisatie
+                if(x===0) ctx1.moveTo(px1, py1); else ctx1.lineTo(px1, py1);
+            }
+            ctx1.stroke();
+
+            // P3 Sinus pad (Middelpunt)
+            ctx1.beginPath();
+            ctx1.strokeStyle = '#f43f5e';
+            ctx1.lineWidth = 2;
+            for(let x = 0; x < w; x+=2) {
+                let theta = (x + shift) / R;
+                let py3 = (h/2) + (R * Math.cos(theta) * 0.6);
+                if(x===0) ctx1.moveTo(x, py3); else ctx1.lineTo(x, py3);
+            }
+            ctx1.stroke();
+
+            // Huidige instantie punten P1, P2, P3
+            let currentX = w / 2;
+            let thetaCurr = (currentX + shift) / R;
+            let cX1 = currentX - R * Math.sin(thetaCurr);
+            let cY1 = (h/2 - 40) - R * Math.cos(thetaCurr);
+            
+            let cX2 = currentX + R * Math.sin(thetaCurr);
+            let cY2 = (h/2 + 40) + R * Math.cos(thetaCurr);
+
+            let cX3 = currentX;
+            let cY3 = (cY1 + cY2) / 2;
+
+            // Lijn P1-P2 (Normaal)
+            ctx1.strokeStyle = '#38bdf8';
+            ctx1.lineWidth = 1.5;
+            ctx1.beginPath();
+            ctx1.moveTo(cX1, cY1); ctx1.lineTo(cX2, cY2);
+            ctx1.stroke();
+
+            // Punten tekenen
+            drawPoint(ctx1, cX1, cY1, '#38bdf8', 'P1');
+            drawPoint(ctx1, cX2, cY2, '#38bdf8', 'P2');
+            drawPoint(ctx1, cX3, cY3, '#f43f5e', 'P3 (Sinus)');
+
+            if (running1) t1 += 0.03;
+            requestAnimationFrame(drawCard1);
+        }
+
+        function drawPoint(ctx, x, y, color, label) {
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx1.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillText(label, x + 6, y - 6);
+        }
+
+        document.getElementById('btn1').addEventListener('click', () => { running1 = !running1; document.getElementById('btn1').innerText = running1 ? "Pauze" : "Start"; });
+        document.getElementById('slider1').addEventListener('input', (e) => { t1 = (e.target.value / 100) * 20; });
+        drawCard1();
+
+
+        // --- 2. Epi- en Hypocycloïden ---
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+        let t2 = 0;
+        let isHypo = false;
+
+        function drawCard2() {
+            clearCanvas(ctx2, canvas2.width, canvas2.height);
+            const w = canvas2.width, h = canvas2.height;
+            const cx = w / 2, cy = h / 2;
+            const R = 50; // Vaste cirkel
+            const r = 25; // Rollende cirkel
+            const offset = document.getElementById('slider2').value * 0.4; // Modificatie offset l
+
+            ctx2.save();
+            ctx2.translate(cx, cy);
+
+            // Vaste basiscirkel
+            ctx2.strokeStyle = '#334155';
+            ctx2.lineWidth = 1;
+            ctx2.beginPath(); ctx2.arc(0, 0, R, 0, Math.PI*2); ctx2.stroke();
+
+            // Cycloïde kromme tekenen
+            ctx2.strokeStyle = '#38bdf8';
+            ctx2.lineWidth = 2;
+            ctx2.beginPath();
+            for (let theta = 0; theta < Math.PI * 4; theta += 0.05) {
+                let x, y;
+                if (!isHypo) {
+                    // Epicycloïde
+                    x = (R + r) * Math.cos(theta) - offset * Math.cos(((R + r) / r) * theta);
+                    y = (R + r) * Math.sin(theta) - offset * Math.sin(((R + r) / r) * theta);
+                } else {
+                    // Hypocycloïde
+                    x = (R - r) * Math.cos(theta) + offset * Math.cos(((R - r) / r) * theta);
+                    y = (R - r) * Math.sin(theta) - offset * Math.sin(((R - r) / r) * theta);
+                }
+                if (theta === 0) ctx2.moveTo(x, y); else ctx2.lineTo(x, y);
+            }
+            ctx2.stroke();
+            ctx2.restore();
+
+            t2 += 0.02;
+            requestAnimationFrame(drawCard2);
+        }
+
+        document.getElementById('btn2-type').addEventListener('click', () => { isHypo = !isHypo; });
+        document.getElementById('slider2').addEventListener('input', () => {});
+        drawCard2();
+
+
+        // --- 3. Catenary & Evolute ---
+        const canvas3 = document.getElementById('canvas3');
+        const ctx3 = canvas3.getContext('2d');
+
+        function drawCard3() {
+            clearCanvas(ctx3, canvas3.width, canvas3.height);
+            const w = canvas3.width, h = canvas3.height;
+            const cx = w / 2, cy = h / 2 + 30;
+            const a = document.getElementById('slider3').value * 0.4 + 10;
+
+            // Catenary (Kettinglijn) y = a * cosh(x/a)
+            ctx3.strokeStyle = '#38bdf8';
+            ctx3.lineWidth = 2;
+            ctx3.beginPath();
+            for(let x = -w/2; x < w/2; x += 2) {
+                let y = a * Math.cosh(x / a) - a; 
+                let px = cx + x;
+                let py = cy - y;
+                if (x === -w/2) ctx3.moveTo(px, py); else ctx3.lineTo(px, py);
+            }
+            ctx3.stroke();
+
+            // Inverta catenary (Koepel / Boogvorm onder druk)
+            ctx3.strokeStyle = '#f43f5e';
+            ctx3.setLineDash([4, 4]);
+            ctx3.beginPath();
+            for(let x = -w/2; x < w/2; x += 2) {
+                let y = a * Math.cosh(x / a) - a; 
+                let px = cx + x;
+                let py = cy - (60 - y); // Omgekeerd
+                if (x === -w/2) ctx3.moveTo(px, py); else ctx3.lineTo(px, py);
+            }
+            ctx3.stroke();
+            ctx3.setLineDash([]);
+
+            requestAnimationFrame(drawCard3);
+        }
+        document.getElementById('slider3').addEventListener('input', drawCard3);
+        drawCard3();
+
+
+        // --- 4. Lissajous-krommen ---
+        const canvas4 = document.getElementById('canvas4');
+        const ctx4 = canvas4.getContext('2d');
+        let t4 = 0;
+
+        function drawCard4() {
+            clearCanvas(ctx4, canvas4.width, canvas4.height);
+            const w = canvas4.width, h = canvas4.height;
+            const cx = w / 2, cy = h / 2;
+            const scale = 90;
+            const freq = parseInt(document.getElementById('slider4').value);
+
+            ctx4.strokeStyle = '#38bdf8';
+            ctx4.lineWidth = 2;
+            ctx4.beginPath();
+            for (let a = 0; a < Math.PI * 2; a += 0.01) {
+                let x = cx + scale * Math.sin(freq * a + t4);
+                let y = cy + scale * Math.sin(2 * a);
+                if (a === 0) ctx4.moveTo(x, y); else ctx4.lineTo(x, y);
+            }
+            ctx4.stroke();
+
+            t4 += 0.01;
+            requestAnimationFrame(drawCard4);
+        }
+        document.getElementById('slider4').addEventListener('input', drawCard4);
+        drawCard4();
+
+
+        // --- 5. Hilbert-kromme (Fractaal) ---
+        const canvas5 = document.getElementById('canvas5');
+        const ctx5 = canvas5.getContext('2d');
+
+        // Hilbert curve generator via index mapping
+        function hilbertXY(n, d) {
+            let rx, ry, s, t = d;
+            let x = 0, y = 0;
+            for (s = 1; s < n; s *= 2) {
+                rx = 1 & (t / 2);
+                ry = 1 & (t ^ rx);
+                // Rotatie
+                if (ry === 0) {
+                    if (rx === 1) {
+                        x = s - 1 - x;
+                        y = s - 1 - y;
+                    }
+                    let temp = x; x = y; y = temp;
+                }
+                x += s * rx;
+                y += s * ry;
+                t /= 4;
+            }
+            return { x: x, y: y };
+        }
+
+        function drawCard5() {
+            clearCanvas(ctx5, canvas5.width, canvas5.height);
+            const w = canvas5.width, h = canvas5.height;
+            const order = parseInt(document.getElementById('slider5').value);
+            const n = Math.pow(2, order);
+            const totalPoints = n * n;
+            const margin = 20;
+            const size = Math.min(w, h) - (margin * 2);
+            const step = size / (n - 1 || 1);
+
+            ctx5.strokeStyle = '#38bdf8';
+            ctx5.lineWidth = 1.5;
+            ctx5.beginPath();
+
+            for (let i = 0; i < totalPoints; i++) {
+                let pt = hilbertXY(n, i);
+                let px = margin + pt.x * step;
+                let py = margin + pt.y * step;
+                if (i === 0) ctx5.moveTo(px, py); else ctx5.lineTo(px, py);
+            }
+            ctx5.stroke();
+        }
+
+        document.getElementById('slider5').addEventListener('input', drawCard5);
+        drawCard5();
+    </script>
+</body>
+</html>
