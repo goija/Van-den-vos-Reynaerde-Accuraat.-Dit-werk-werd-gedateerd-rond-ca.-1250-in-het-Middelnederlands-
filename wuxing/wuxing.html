@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wu Xing: GF(2) Render Engine</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #eeeeee;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { margin-top: 0; color: #d4d4d4; }
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #111;
+            border: 1px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            border-radius: 5px;
+        }
+        .controls {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 350px;
+        }
+        label { font-weight: bold; }
+        input[type="range"] { width: 100%; }
+        button {
+            background-color: #4a4a4a;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #6a6a6a; }
+        .sheng-btn { background-color: #2b5c2b; }
+        .sheng-btn:hover { background-color: #3b7c3b; }
+        .ke-btn { background-color: #7c2b2b; }
+        .ke-btn:hover { background-color: #9c3b3b; }
+        .state-panel {
+            background-color: #000;
+            padding: 15px;
+            border: 1px solid #555;
+            text-align: center;
+            border-radius: 3px;
+        }
+        .vector-text { font-size: 1.2em; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <h1>Wu Xing: Hypotrochoïde & GF(2) Binaire Logica</h1>
+
+    <div class="container">
+        <canvas id="mathCanvas" width="600" height="600"></canvas>
+
+        <div class="controls">
+            <div class="state-panel" id="statePanel">
+                <h2 id="elementName" style="margin:0 0 10px 0; color:#2ca02c;">HOUT</h2>
+                <div class="vector-text" id="vectorDisplay">[1, 0, 0, 0, 0]</div>
+            </div>
+
+            <div>
+                <label>R (Buitenste straal): <span id="valR">5</span></label>
+                <input type="range" id="sliderR" min="1" max="10" step="0.1" value="5">
+            </div>
+            <div>
+                <label>r (Binnenste straal): <span id="valr">2</span></label>
+                <input type="range" id="slider_r" min="0.1" max="5" step="0.1" value="2">
+            </div>
+            <div>
+                <label>d (Pen-afstand): <span id="vald">3</span></label>
+                <input type="range" id="sliderd" min="0" max="10" step="0.1" value="3">
+            </div>
+
+            <hr style="width:100%; border-color:#444;">
+
+            <button class="sheng-btn" onclick="applyTransition(M_S)">SHENG CYCLUS (Generatie) [M_S]</button>
+            <button class="ke-btn" onclick="applyTransition(M_K)">KE CYCLUS (Controle) [M_K]</button>
+        </div>
+    </div>
+
+    <script>
+        // === Binaire GF(2) Backend ===
+        
+        // De Elementen en hun one-hot vectoren
+        const elementsData = [
+            { vector: [1,0,0,0,0], name: "HOUT", color: "#2ca02c" },
+            { vector: [0,1,0,0,0], name: "VUUR", color: "#d62728" },
+            { vector: [0,0,1,0,0], name: "AARDE", color: "#bcbd22" },
+            { vector: [0,0,0,1,0], name: "METAAL", color: "#cccccc" },
+            { vector: [0,0,0,0,1], name: "WATER", color: "#1f77b4" }
+        ];
+
+        let currentVector = [1, 0, 0, 0, 0]; // Start met Hout
+
+        // Transitiematrices
+        const M_S = [
+            [0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0]
+        ];
+
+        const M_K = [
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 1, 0, 0]
+        ];
+
+        // Matrixvermenigvuldiging over GF(2)
+        function multiplyGF2(matrix, vector) {
+            let result = [0, 0, 0, 0, 0];
+            for (let i = 0; i < 5; i++) {
+                let sum = 0;
+                for (let j = 0; j < 5; j++) {
+                    sum += matrix[i][j] * vector[j];
+                }
+                result[i] = sum % 2; // Modulo 2 voor binaire logica
+            }
+            return result;
+        }
+
+        function getElementInfo(vec) {
+            for (let el of elementsData) {
+                if (el.vector.every((val, index) => val === vec[index])) {
+                    return el;
+                }
+            }
+            return { name: "ONBEKEND", color: "#ffffff" };
+        }
+
+        // === Canvas en UI Logica ===
+        
+        const canvas = document.getElementById('mathCanvas');
+        const ctx = canvas.getContext('2d');
+        const center = { x: canvas.width / 2, y: canvas.height / 2 };
+        const scale = 40; // Schaalfactor voor de formule
+
+        const sliderR = document.getElementById('sliderR');
+        const slider_r = document.getElementById('slider_r');
+        const sliderd = document.getElementById('sliderd');
+
+        function updateUI() {
+            document.getElementById('valR').innerText = sliderR.value;
+            document.getElementById('valr').innerText = slider_r.value;
+            document.getElementById('vald').innerText = sliderd.value;
+            
+            const info = getElementInfo(currentVector);
+            const nameEl = document.getElementById('elementName');
+            nameEl.innerText = info.name;
+            nameEl.style.color = info.color;
+            document.getElementById('vectorDisplay').innerText = `[${currentVector.join(', ')}]`;
+            
+            drawHypotrochoid(info.color);
+        }
+
+        function applyTransition(matrix) {
+            currentVector = multiplyGF2(matrix, currentVector);
+            updateUI();
+        }
+
+        function drawHypotrochoid(color) {
+            const R = parseFloat(sliderR.value);
+            const r = parseFloat(slider_r.value);
+            const d = parseFloat(sliderd.value);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            
+            // Subtiel gloei-effect
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+
+            // Teken de curve. Om zeker te zijn dat hij sluit, 
+            // nemen we een ruime marge in rotaties (tot 100 * PI).
+            let maxTheta = Math.PI * 100; 
+            let step = 0.05;
+            
+            let firstPoint = true;
+
+            for (let theta = 0; theta <= maxTheta; theta += step) {
+                // De wiskundige vergelijkingen
+                const x = (R - r) * Math.cos(theta) + d * Math.cos(((R - r) / r) * theta);
+                const y = (R - r) * Math.sin(theta) - d * Math.sin(((R - r) / r) * theta);
+
+                // Schalen en centreren op canvas
+                const canvasX = center.x + x * scale;
+                const canvasY = center.y + y * scale;
+
+                if (firstPoint) {
+                    ctx.moveTo(canvasX, canvasY);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+            
+            // Reset schaduw
+            ctx.shadowBlur = 0;
+        }
+
+        // Event listeners voor sliders
+        sliderR.addEventListener('input', updateUI);
+        slider_r.addEventListener('input', updateUI);
+        sliderd.addEventListener('input', updateUI);
+
+        // Initiële tekening
+        updateUI();
+    </script>
+</body>
+</html>
