@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collatz Cyclus Simulator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --accent-color: #4caf50;
+            --box-bg: #1e1e1e;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        h1 {
+            color: var(--accent-color);
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: var(--box-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #2a2a2a;
+            color: white;
+            width: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--accent-color);
+            color: #121212;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #output {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            max-width: 800px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .step {
+            background-color: var(--box-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+            display: flex;
+            align-items: center;
+            font-size: 1.2rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .arrow {
+            color: #666;
+            font-weight: bold;
+            margin-left: 15px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Wiskundige Dynamiek: Collatz ($3x+1$)</h1>
+    <p>Voer een negatief startgetal in (bijv. -19 of -14) om de reeks en de stabiele cyclus te zien.</p>
+
+    <div class="controls">
+        <input type="number" id="startNumber" value="-19" />
+        <button id="calcBtn">Bereken Reeks</button>
+    </div>
+
+    <div id="output">
+        </div>
+
+    <script>
+        // De wiskundige logica met behulp van de arrow (=>) operator
+        const collatzStap = n => (n % 2 === 0) ? (n / 2) : (3 * n + 1);
+
+        // Functie om de DOM te updaten
+        const genereerReeks = () => {
+            const inputElement = document.getElementById('startNumber');
+            const outputDiv = document.getElementById('output');
+            
+            let n = parseInt(inputElement.value);
+            outputDiv.innerHTML = ''; // Maak het scherm leeg
+
+            // We limiteren de output tot 20 stappen om een oneindige loop in de browser te voorkomen
+            const maxStappen = 20; 
+            
+            for (let i = 0; i < maxStappen; i++) {
+                // Maak een nieuw visueel blokje aan voor het huidige getal
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step';
+                
+                // Voeg het getal en een pijltje toe (behalve bij de laatste stap)
+                if (i < maxStappen - 1) {
+                    stepDiv.innerHTML = `<span>${n}</span> <span class="arrow">&rarr;</span>`;
+                } else {
+                    stepDiv.innerHTML = `<span>${n}</span> <span class="arrow">...cyclus herhaalt</span>`;
+                }
+                
+                outputDiv.appendChild(stepDiv);
+                
+                // Bereken de volgende stap via de arrow function
+                n = collatzStap(n);
+            }
+        };
+
+        // Koppel de knop aan de functie
+        document.getElementById('calcBtn').addEventListener('click', genereerReeks);
+
+        // Run direct 1 keer bij het inladen van de pagina
+        genereerReeks();
+    </script>
+
+</body>
+</html>
