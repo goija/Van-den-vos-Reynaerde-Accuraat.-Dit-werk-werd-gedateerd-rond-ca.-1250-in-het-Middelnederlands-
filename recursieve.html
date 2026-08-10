@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groeiende Recursie Visualisatie</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+        }
+        p {
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button, input {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #1e293b;
+            color: #f8fafc;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #334155;
+        }
+        input[type="number"] {
+            width: 70px;
+        }
+        #canvas-container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Recursieve Boomgroei (Call Stack Visualisatie)</h1>
+    <p>Visualiseert hoe een recursieve functie vertakt en groeit naarmate de diepte toeneemt.</p>
+
+    <div class="controls">
+        <label for="depthInput">Diepte (n):</label>
+        <input type="number" id="depthInput" value="4" min="1" max="7">
+        <button id="drawBtn">Genereer Boom</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="recursionCanvas" width="900" height="550"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('recursionCanvas');
+        const ctx = canvas.getContext('2d');
+        const depthInput = document.getElementById('depthInput');
+        const drawBtn = document.getElementById('drawBtn');
+
+        function drawNode(x, y, radius, label, depth, maxDepth) {
+            // Teken cirkel voor de node
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            
+            // Kleurintensiteit op basis van diepte
+            const hue = 210 + (depth * 15);
+            ctx.fillStyle = `hsl(${hue}, 70%, ${30 + depth * 5}%)`;
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Teken tekst (label)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+        }
+
+        function drawBranch(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function generateTree(x, y, width, depth, currentDepth, maxDepth) {
+            if (currentDepth > maxDepth) return;
+
+            const radius = 18;
+            const nextY = y + 70;
+
+            // Als we niet op de diepste laag zijn, teken takken naar kinderen
+            if (currentDepth < maxDepth) {
+                const leftX = x - width / 2;
+                const rightX = x + width / 2;
+
+                drawBranch(x, y, leftX, nextY);
+                drawBranch(x, y, rightX, nextY);
+
+                generateTree(leftX, nextY, width / 2, depth, currentDepth + 1, maxDepth);
+                generateTree(rightX, nextY, width / 2, depth, currentDepth + 1, maxDepth);
+            }
+
+            // Teken de node zelf (bijv. F_n)
+            drawNode(x, y, radius, `F_{${maxDepth - currentDepth + 1}}`, currentDepth, maxDepth);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const maxDepth = parseInt(depthInput.value);
+            
+            if (maxDepth > 7) {
+                alert('Kies een diepte maximaal 7 om de boom leesbaar te houden op het scherm.');
+                depthInput.value = 7;
+                return;
+            }
+
+            // Startpositie bovenaan in het midden
+            const startX = canvas.width / 2;
+            const startY = 40;
+            const initialWidth = canvas.width / 3.5;
+
+            generateTree(startX, startY, initialWidth, 0, 0, maxDepth);
+        }
+
+        drawBtn.addEventListener('click', render);
+        depthInput.addEventListener('change', render);
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
