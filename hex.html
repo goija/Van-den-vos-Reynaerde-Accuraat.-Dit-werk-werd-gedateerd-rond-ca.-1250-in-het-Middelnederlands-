@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zes-Lijnen Dynamiek</title>
+    <style>
+        /* CSS voor de styling en visuele interface */
+        body {
+            background-color: #7EC0EE; /* Hemelsblauw */
+            color: #2F4F4F;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        
+        #hexagram {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 30px 0;
+        }
+        
+        .line {
+            width: 150px;
+            height: 20px;
+            background-color: #1a1a1a;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        /* De Yin lijn is onderbroken in het midden */
+        .yin {
+            background: linear-gradient(to right, #1a1a1a 42%, transparent 42%, transparent 58%, #1a1a1a 58%);
+        }
+        
+        button {
+            background-color: #F8F8FF;
+            border: 2px solid #1a1a1a;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #E6E6FA;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Hexagram Generator</h2>
+    
+    <div id="hexagram">
+        </div>
+    
+    <button onclick="genereerHexagram()">Genereer Nieuw Hexagram</button>
+
+    <script>
+        // JavaScript voor de interactie en logica
+        function genereerHexagram() {
+            const container = document.getElementById('hexagram');
+            
+            // Leeg de container voordat een nieuw hexagram wordt getekend
+            container.innerHTML = ''; 
+
+            // Loop om zes lijnen op te bouwen
+            for (let i = 0; i < 6; i++) {
+                // Binaire toewijzing: true (Yang/gesloten) of false (Yin/onderbroken)
+                const isYang = Math.random() >= 0.5; 
+                
+                // Creëer het DOM-element voor de lijn
+                const lijnDiv = document.createElement('div');
+                lijnDiv.className = 'line ' + (isYang ? 'yang' : 'yin');
+                
+                // Voeg de lijn toe aan de container
+                container.appendChild(lijnDiv);
+            }
+        }
+
+        // Zorg ervoor dat er direct een hexagram staat bij het laden van de pagina
+        window.onload = genereerHexagram;
+    </script>
+</body>
+</html>
