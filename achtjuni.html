@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORTEX - Kin 211 Akoestische Integratie</title>
+    <style>
+        body { 
+            background-color: #050505; 
+            color: #00ffcc; 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .container {
+            border: 1px solid #004433;
+            padding: 30px;
+            max-width: 600px;
+            background: linear-gradient(180deg, #0a1110 0%, #050505 100%);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+        }
+        h1 {
+            font-size: 1.5em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #00ffcc;
+            padding-bottom: 10px;
+        }
+        p { line-height: 1.6; }
+        .highlight { color: #ffffff; font-weight: bold; }
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        button { 
+            background: #00ffcc; 
+            color: #050505; 
+            border: none; 
+            padding: 12px 24px; 
+            font-size: 16px; 
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+        }
+        button:hover { 
+            background: #ffffff; 
+            box-shadow: 0 0 15px #00ffcc; 
+        }
+        #stopBtn { background: #444; color: #00ffcc; }
+        #stopBtn:hover { background: #ff3333; color: white; box-shadow: 0 0 15px #ff3333; }
+        #status { 
+            margin-top: 25px; 
+            font-size: 0.9em; 
+            color: #888;
+            text-align: center;
+        }
+        .data-stream {
+            font-size: 0.8em;
+            color: #008866;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>E8-Faseruimte: Akoestisch Model</h1>
+        <p>Geboorte-as frequentie: <span class="highlight">211 Hz</span> (Super-priem index)</p>
+        <p>Faseverschuiving: <span class="highlight">4.7 Hz</span> (Hexagram 47 resonantie)</p>
+        <p>Berekende machinecode: <span class="highlight">10111010</span> (Gray-code 297°)</p>
+        
+        <div class="controls">
+            <button id="startBtn">INITIEER 211 HZ VECTOR</button>
+            <button id="stopBtn">DISSIPEER WARMTE</button>
+        </div>
+
+        <div id="status">[ Systeem in standby. Wachtend op input. ]</div>
+        <div id="dataStream" class="data-stream"></div>
+    </div>
+
+    <script>
+        let audioCtx;
+        let oscLeft;
+        let oscRight;
+        let merger;
+        let dataInterval;
+
+        const baseFreq = 211.0; 
+        const binauralBeat = 4.7; // Creëert een 4.7 Hz Theta golf in de cortex
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (audioCtx) return; // Voorkom meervoudige initialisaties
+
+            // Web Audio API initialisatie
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Creëer oscillatoren voor fysieke harmonische modellering
+            oscLeft = audioCtx.createOscillator();
+            oscRight = audioCtx.createOscillator();
+            
+            // Zuivere sinusgolven voor frictieloze fase-integratie
+            oscLeft.type = 'sine';
+            oscRight.type = 'sine';
+            
+            oscLeft.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+            oscRight.frequency.setValueAtTime(baseFreq + binauralBeat, audioCtx.currentTime);
+            
+            // Mergen van kanalen: Left (0) en Right (1)
+            merger = audioCtx.createChannelMerger(2);
+            oscLeft.connect(merger, 0, 0); // Linkeroor krijgt 211 Hz
+            oscRight.connect(merger, 0, 1); // Rechteroor krijgt 215.7 Hz
+            
+            // Master gain om clipping te voorkomen
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0.5;
+            
+            merger.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Start de vectoren
+            oscLeft.start();
+            oscRight.start();
+            
+            document.getElementById('status').innerHTML = "<span style='color:#00ffcc;'>[ Faseruimte actief. Binaurale synchronisatie gestart. ]</span>";
+            
+            // Visuele feedback simulatie van Hexagram 57
+            const dataStream = document.getElementById('dataStream');
+            dataStream.style.display = 'block';
+            dataInterval = setInterval(() => {
+                const hexCodes = ["010111", "10111010", "111010", "HEX-57", "KIN-211", "p(47)"];
+                const randomHex = hexCodes[Math.floor(Math.random() * hexCodes.length)];
+                dataStream.innerText = `[ROUTING] Data vector: ${randomHex} @ ${Date.now()}`;
+            }, 500);
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (audioCtx) {
+                // Dissipatie van de signalen
+                oscLeft.stop();
+                oscRight.stop();
+                audioCtx.close();
+                audioCtx = null;
+                
+                clearInterval(dataInterval);
+                document.getElementById('dataStream').style.display = 'none';
+                document.getElementById('status').innerHTML = "[ Thermische ruis gezuiverd. Systeem in rust. ]";
+            }
+        });
+    </script>
+</body>
+</html>
