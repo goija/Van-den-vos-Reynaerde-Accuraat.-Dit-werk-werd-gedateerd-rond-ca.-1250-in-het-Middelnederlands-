@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10P/Tempel 2 - WebRTC Telemetrie & Versiebeheer</title>
+    <title>10P/Tempel Baanresonantie Simulator (2026)</title>
     <style>
         :root {
             --bg-color: #0b101e;
@@ -15,7 +15,6 @@
             --accent-green: #10b981;
             --accent-red: #ef4444;
             --border-color: #1e293b;
-            --log-bg: #050505;
         }
 
         body {
@@ -29,13 +28,26 @@
             align-items: center;
         }
 
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h1 { color: var(--accent-gold); margin: 0 0 5px 0; font-size: 1.8rem; }
-        .header p { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: var(--accent-gold);
+            margin: 0 0 5px 0;
+            font-size: 1.8rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 0.9rem;
+        }
 
         .dashboard {
             display: grid;
-            grid-template-columns: 320px 760px 320px;
+            grid-template-columns: 300px 800px 300px;
             gap: 20px;
             max-width: 1440px;
         }
@@ -46,8 +58,6 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
         }
 
         .panel-title {
@@ -64,329 +74,240 @@
             gap: 10px;
         }
 
-        .btn {
-            background-color: var(--accent-gold); color: #000; border: none;
-            padding: 10px 15px; border-radius: 4px; font-weight: bold;
-            cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.3s;
-        }
-        .btn:hover { background-color: #d97706; }
-        .btn-webrtc { background-color: var(--accent-blue); color: white; }
-        .btn-webrtc:hover { background-color: #2563eb; }
-        .btn-stop { background-color: var(--accent-red); color: white; }
-        .btn-stop:hover { background-color: #dc2626; }
-        
-        .canvas-container {
-            position: relative; width: 100%; height: 500px;
-            background: radial-gradient(circle at center, #1a2436 0%, #0b101e 100%);
-            border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;
+        .control-group {
+            margin-bottom: 15px;
         }
 
-        canvas { display: block; }
-        
-        .data-list { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; }
-        .data-list li { display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .data-value { color: var(--accent-gold); font-family: monospace; font-size: 1rem; }
-        .compass-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
-        
-        /* Consoles & Logs */
-        .console-box {
-            background-color: var(--log-bg);
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        .btn {
+            background-color: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover { background-color: #d97706; }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: radial-gradient(circle at center, #1a2436 0%, #0b101e 100%);
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 10px;
+            overflow: hidden;
+        }
+
+        #orbitCanvas, #resonanceCanvas, #compassCanvas {
+            display: block;
+        }
+
+        .status-indicator {
+            color: var(--accent-green);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .data-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .data-list li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .data-value {
+            color: var(--accent-gold);
             font-family: monospace;
-            font-size: 0.8rem;
-            margin-top: 15px;
+            font-size: 1rem;
+        }
+
+        .compass-container {
             display: flex;
             flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
         }
-        
-        .webrtc-console { height: 120px; overflow-y: auto; color: var(--accent-green); }
-        .version-console { height: 100px; overflow-y: auto; color: var(--text-muted); }
-        
-        .log-entry { margin-bottom: 3px; }
-        .log-error { color: var(--accent-red); }
-        .commit-hash { color: var(--accent-gold); }
-        
-        .status-badge {
-            display: inline-block; padding: 2px 8px; border-radius: 12px;
-            font-size: 0.75rem; font-weight: bold; background-color: #374151; color: #d1d5db;
-        }
-        .status-connected { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>☄️ Komeet 10P/Tempel 2 & WebRTC Telemetrie</h1>
-        <p>Realtime Baansimulatie & Sensor Tracking — Laren, NL (Epoche 15 Aug 2026, 15:42)</p>
+        <h1>☄️ Komeet 10P/Tempel Baanresonantie Simulator</h1>
+        <p>Realtime Kepler-baansimulatie (Epoche 15 augustus 2026, 15:00 CEST) — Waarnemingslocatie: Laren, NL</p>
     </div>
 
     <div class="dashboard">
-        <!-- Kolom 1: WebRTC & Versiebeheer -->
+        <!-- Linker Kolom: Parameters & Resonantie -->
         <div class="column">
             <div class="panel">
-                <h2 class="panel-title">📡 WebRTC DataChannel</h2>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 0.9rem; color: var(--text-muted);">Sensor Link:</span>
-                    <span id="rtcStatus" class="status-badge">OFFLINE</span>
+                <h2 class="panel-title">⚙️ Baanparameters (10P)</h2>
+                <div class="control-group">
+                    <label>Excentriciteit: <span class="value-display">0.53</span></label>
+                    <input type="range" min="0" max="100" value="53" disabled>
                 </div>
-                
-                <button id="connectRtcBtn" class="btn btn-webrtc">INITIEER LOOPBACK</button>
-                <button id="simulateSensorBtn" class="btn" style="display: none;">START SENSOR TRACKING</button>
-
-                <div class="console-box webrtc-console" id="rtcConsole">
-                    <div class="log-entry" style="color: #6b7280;">[SYS] Standby voor WebRTC verbinding...</div>
+                <div class="control-group">
+                    <label>Halve Lange As (a in AE): <span class="value-display">3.12</span></label>
+                    <input type="range" min="100" max="500" value="312" disabled>
                 </div>
+                <button class="btn">BAANGEGEVENS BIJGEWERKT (2026)</button>
             </div>
 
             <div class="panel" style="margin-top: 20px;">
-                <h2 class="panel-title">🛠️ Versiebeheer (Git)</h2>
-                <div class="console-box version-console">
-                    <div class="log-entry"><span class="commit-hash">v2.1.0</span> - WebRTC DataChannel geïmplementeerd</div>
-                    <div class="log-entry"><span class="commit-hash">v2.0.5</span> - Elevatie & Azimut calibratie (72.0°, -54.3°)</div>
-                    <div class="log-entry"><span class="commit-hash">v2.0.1</span> - Kompas UI optimalisaties toegevoegd</div>
-                    <div class="log-entry"><span class="commit-hash">v1.8.4</span> - 10P/Tempel Kepler-baanelementen update</div>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; text-align: right;">Branch: main | Status: Clean</div>
+                <h2 class="panel-title">📊 Resonantie-Analyse</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0;">Type: 1:3 met Jupiter</p>
+                <canvas id="resonanceCanvas" width="260" height="150" style="background: #0b101e; border: 1px solid #1e293b;"></canvas>
+                <p style="margin-bottom: 0; font-size: 0.9rem;">Resonantie Status: <span class="status-indicator">STABIEL</span></p>
             </div>
         </div>
 
-        <!-- Kolom 2: Simulatie Canvas -->
+        <!-- Middelste Kolom: Hoofd Simulatie -->
         <div class="panel" style="padding: 10px;">
             <div class="canvas-container">
-                <canvas id="orbitCanvas" width="740" height="500"></canvas>
+                <canvas id="orbitCanvas" width="780" height="500"></canvas>
             </div>
             <div style="display: flex; justify-content: space-between; padding: 10px 20px; color: var(--text-muted); font-size: 0.85rem;">
                 <span>🟡 Zon (0 AE)</span>
                 <span>🔵 Aarde (1.0 AE)</span>
-                <span>🔴 10P/Tempel 2</span>
+                <span>🔴 Komeet 10P/Tempel</span>
                 <span>🟠 Jupiter (5.2 AE)</span>
             </div>
         </div>
 
-        <!-- Kolom 3: Telescoop Richting & Kompas -->
+        <!-- Rechter Kolom: Kijkrichting & Data -->
         <div class="column">
             <div class="panel">
-                <h2 class="panel-title">🔭 Live Sensor Data</h2>
+                <h2 class="panel-title">🔭 Kijkrichting (Live)</h2>
                 <ul class="data-list">
-                    <li><span>Doelwit:</span> <span class="data-value" style="color: var(--text-main);">10P/Tempel 2</span></li>
-                    <li><span>Sensor Azimut:</span> <span class="data-value" id="azimuthDisplay">72.00°</span></li>
-                    <li><span>Sensor Elevatie:</span> <span class="data-value" id="elevationDisplay" style="color: var(--accent-red);">-54.30°</span></li>
-                    <li><span>Bron:</span> <span class="data-value" id="dataSource" style="font-size: 0.8rem;">Statisch (Planit)</span></li>
-                    <li><span>Horizon Status:</span> <span class="data-value" id="horizonStatus" style="font-size: 0.8rem; color: var(--accent-red);">Onder horizon</span></li>
+                    <li><span>Azimut:</span> <span class="data-value">56.7° (ONO)</span></li>
+                    <li><span>Elevatie:</span> <span class="data-value" style="color: var(--accent-red);">-6.2°</span></li>
+                    <li><span>Status:</span> <span class="data-value" style="color: var(--text-muted); font-size: 0.8rem;">Onder horizon</span></li>
                 </ul>
+                
                 <div class="compass-container">
                     <canvas id="compassCanvas" width="200" height="200"></canvas>
                 </div>
             </div>
-            
+
             <div class="panel" style="margin-top: 20px;">
-                 <h2 class="panel-title">📊 Resonantie (1:3)</h2>
-                 <canvas id="resonanceCanvas" width="280" height="80" style="background: #0b101e; border: 1px solid #1e293b; border-radius: 4px;"></canvas>
+                <h2 class="panel-title">⏱️ Tijd & Simulatie</h2>
+                <ul class="data-list">
+                    <li><span>Afstand tot Aarde:</span> <span class="data-value">1.424 AE</span></li>
+                    <li><span>Omloopsnelheid:</span> <span class="data-value">10.92 km/s</span></li>
+                </ul>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. GLOBALE VARIABELEN ---
-        // Planit Pro Base Data (15 Aug 2026 15:42)
-        const BASE_AZIMUTH = 72.0;
-        const BASE_ELEVATION = -54.3;
-        
-        let currentAzimut = BASE_AZIMUTH;
-        let currentElevatie = BASE_ELEVATION;
-        let rtcActive = false;
-        
-        // Baan simulatie hoeken
-        let earthAngle = 4.2; 
-        let jupiterAngle = 1.2; 
-        let cometAngle = 0.5;
-
-        // UI Elementen
-        const azimuthDisplay = document.getElementById('azimuthDisplay');
-        const elevationDisplay = document.getElementById('elevationDisplay');
-        const dataSource = document.getElementById('dataSource');
-        const horizonStatus = document.getElementById('horizonStatus');
-        const rtcConsole = document.getElementById('rtcConsole');
-        const rtcStatusBadge = document.getElementById('rtcStatus');
-        
-        function logRtc(msg, type="info") {
-            const entry = document.createElement('div');
-            entry.className = type === "error" ? "log-entry log-error" : "log-entry";
-            let time = new Date().toLocaleTimeString('nl-NL');
-            entry.innerText = `[${time}] ${msg}`;
-            rtcConsole.appendChild(entry);
-            rtcConsole.scrollTop = rtcConsole.scrollHeight;
-        }
-
-        // --- 2. WEBRTC SENSOR TRACKING ---
-        let localConnection, remoteConnection;
-        let sendChannel, receiveChannel;
-        let sensorInterval;
-
-        document.getElementById('connectRtcBtn').addEventListener('click', setupWebRTC);
-        document.getElementById('simulateSensorBtn').addEventListener('click', toggleSensorSimulation);
-
-        async function setupWebRTC() {
-            logRtc("Initialiseer RTCPeerConnections...");
-            
-            localConnection = new RTCPeerConnection(); 
-            remoteConnection = new RTCPeerConnection(); 
-
-            localConnection.onicecandidate = e => !e.candidate || remoteConnection.addIceCandidate(e.candidate);
-            remoteConnection.onicecandidate = e => !e.candidate || localConnection.addIceCandidate(e.candidate);
-
-            sendChannel = localConnection.createDataChannel("telemetry");
-            sendChannel.onopen = () => logRtc("Tx Channel: OPEN");
-
-            remoteConnection.ondatachannel = (event) => {
-                receiveChannel = event.channel;
-                receiveChannel.onopen = () => {
-                    logRtc("Rx Channel: OPEN", "success");
-                    rtcStatusBadge.innerText = "CONNECTED";
-                    rtcStatusBadge.className = "status-badge status-connected";
-                    document.getElementById('connectRtcBtn').style.display = 'none';
-                    document.getElementById('simulateSensorBtn').style.display = 'block';
-                    dataSource.innerText = "WebRTC (Idle)";
-                    dataSource.style.color = "var(--accent-blue)";
-                };
-                receiveChannel.onmessage = handleIncomingTelemetry;
-            };
-
-            try {
-                const offer = await localConnection.createOffer();
-                await localConnection.setLocalDescription(offer);
-                await remoteConnection.setRemoteDescription(offer);
-
-                const answer = await remoteConnection.createAnswer();
-                await remoteConnection.setLocalDescription(answer);
-                await localConnection.setRemoteDescription(answer);
-                logRtc("SDP Handshake voltooid.");
-            } catch (e) {
-                logRtc(`WebRTC Fout: ${e.message}`, "error");
-            }
-        }
-
-        function handleIncomingTelemetry(event) {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'telemetry') {
-                    currentAzimut = data.azimut;
-                    currentElevatie = data.elevatie;
-                    
-                    azimuthDisplay.innerText = currentAzimut.toFixed(2) + '°';
-                    elevationDisplay.innerText = (currentElevatie > 0 ? '+' : '') + currentElevatie.toFixed(2) + '°';
-                    
-                    if (currentElevatie > 0) {
-                        elevationDisplay.style.color = "var(--accent-green)";
-                        horizonStatus.innerText = "Boven horizon";
-                        horizonStatus.style.color = "var(--accent-green)";
-                    } else {
-                        elevationDisplay.style.color = "var(--accent-red)";
-                        horizonStatus.innerText = "Onder horizon";
-                        horizonStatus.style.color = "var(--accent-red)";
-                    }
-                    
-                    logRtc(`Data Rx: AZ=${data.azimut.toFixed(3)}, EL=${data.elevatie.toFixed(3)}`);
-                }
-            } catch (e) {
-                logRtc(`Dataparse fout: ${e.message}`, "error");
-            }
-        }
-
-        function toggleSensorSimulation() {
-            const btn = document.getElementById('simulateSensorBtn');
-            if (rtcActive) {
-                clearInterval(sensorInterval);
-                rtcActive = false;
-                btn.innerText = "START SENSOR TRACKING";
-                btn.className = "btn";
-                dataSource.innerText = "WebRTC (Idle)";
-                logRtc("Sensor tracking gestopt.");
-            } else {
-                rtcActive = true;
-                btn.innerText = "STOP SENSOR TRACKING";
-                btn.className = "btn btn-stop";
-                dataSource.innerText = "WebRTC (Live)";
-                logRtc("Sensor tracking gestart (Siderische drift gesimuleerd).");
-                
-                // Simuleer realistische tracking over WebRTC
-                let simAz = currentAzimut;
-                let simEl = currentElevatie;
-                
-                sensorInterval = setInterval(() => {
-                    if (sendChannel && sendChannel.readyState === "open") {
-                        // Siderische aardrotatie drift simulatie (Aarde draait, object beweegt)
-                        simAz += 0.0041; // ca. 15 graden per uur / 3600 sec
-                        simEl += 0.0012; // Lichte stijging
-                        
-                        if(simAz >= 360) simAz -= 360;
-
-                        const payload = JSON.stringify({
-                            type: 'telemetry',
-                            timestamp: Date.now(),
-                            target: '10P/Tempel 2',
-                            azimut: simAz,
-                            elevatie: simEl
-                        });
-                        
-                        sendChannel.send(payload);
-                    }
-                }, 1000); // 1Hz telemetry update
-            }
-        }
-
-        // --- 3. RENDERING ENGINE (Canvas) ---
+        // --- 1. Teken de Baansimulatie (Midden) ---
         const orbitCanvas = document.getElementById('orbitCanvas');
         const oCtx = orbitCanvas.getContext('2d');
         const cx = orbitCanvas.width / 2;
         const cy = orbitCanvas.height / 2;
 
-        function animate() {
-            // Animatie van de planeten
-            earthAngle -= 0.005; 
-            jupiterAngle -= (0.005 / 11.86); 
-            let distanceToSun = Math.sqrt(Math.pow(Math.cos(cometAngle)*210, 2) + Math.pow(Math.sin(cometAngle)*130, 2));
-            cometAngle -= (0.005 / 5.3) * (150 / distanceToSun);
-
-            drawOrbitSystem();
-            drawCompass();
-            drawResonanceGraph();
-
-            requestAnimationFrame(animate);
-        }
-
         function drawOrbitSystem() {
             oCtx.clearRect(0, 0, orbitCanvas.width, orbitCanvas.height);
             
-            // Raster
+            // Grid
             oCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
             for(let i=0; i<orbitCanvas.width; i+=40) { oCtx.beginPath(); oCtx.moveTo(i,0); oCtx.lineTo(i, orbitCanvas.height); oCtx.stroke(); }
             for(let i=0; i<orbitCanvas.height; i+=40) { oCtx.beginPath(); oCtx.moveTo(0,i); oCtx.lineTo(orbitCanvas.width, i); oCtx.stroke(); }
 
             // Zon
-            oCtx.beginPath(); oCtx.arc(cx, cy, 8, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); 
+            oCtx.beginPath(); oCtx.arc(cx, cy, 10, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); oCtx.shadowBlur = 20; oCtx.shadowColor = '#facc15';
+
+            // Aarde Baan & Planeet
+            oCtx.shadowBlur = 0;
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 80, 50, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; oCtx.stroke();
+            oCtx.beginPath(); oCtx.arc(cx + 60, cy + 30, 4, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill();
+
+            // Jupiter Baan & Planeet
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 320, 200, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke();
+            oCtx.beginPath(); oCtx.arc(cx - 200, cy - 150, 7, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill();
+
+            // 10P/Tempel Baan (Excentrisch)
+            oCtx.beginPath(); oCtx.ellipse(cx + 40, cy, 210, 130, Math.PI / 8, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; oCtx.setLineDash([5, 5]); oCtx.stroke(); oCtx.setLineDash([]);
             
-            // Banen
-            oCtx.beginPath(); oCtx.ellipse(cx, cy, 80, 50, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; oCtx.stroke(); 
-            oCtx.beginPath(); oCtx.ellipse(cx, cy, 320, 200, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke(); 
-            oCtx.beginPath(); oCtx.ellipse(cx + 40, cy, 210, 130, Math.PI / 8, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; oCtx.setLineDash([4, 4]); oCtx.stroke(); oCtx.setLineDash([]); 
+            // Komeet positie & Staart
+            const cometX = cx + 180;
+            const cometY = cy - 60;
+            oCtx.beginPath(); oCtx.arc(cometX, cometY, 3, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill();
+            
+            // Staart (weg van zon)
+            const angleFromSun = Math.atan2(cometY - cy, cometX - cx);
+            const tailGradient = oCtx.createLinearGradient(cometX, cometY, cometX + Math.cos(angleFromSun)*80, cometY + Math.sin(angleFromSun)*80);
+            tailGradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+            tailGradient.addColorStop(1, 'rgba(255,255,255,0)');
+            oCtx.beginPath(); oCtx.moveTo(cometX, cometY);
+            oCtx.lineTo(cometX + Math.cos(angleFromSun-0.1)*80, cometY + Math.sin(angleFromSun-0.1)*80);
+            oCtx.lineTo(cometX + Math.cos(angleFromSun+0.1)*80, cometY + Math.sin(angleFromSun+0.1)*80);
+            oCtx.fillStyle = tailGradient; oCtx.fill();
 
-            let eX = cx + Math.cos(earthAngle) * 80; let eY = cy + Math.sin(earthAngle) * 50;
-            let jX = cx + Math.cos(jupiterAngle) * 320; let jY = cy + Math.sin(jupiterAngle) * 200;
-            let cX = cx + 40 + (Math.cos(cometAngle)*210 * Math.cos(Math.PI/8) - Math.sin(cometAngle)*130 * Math.sin(Math.PI/8));
-            let cY = cy + (Math.cos(cometAngle)*210 * Math.sin(Math.PI/8) + Math.sin(cometAngle)*130 * Math.cos(Math.PI/8));
-
-            // Planeten
-            oCtx.beginPath(); oCtx.arc(eX, eY, 4, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill(); 
-            oCtx.beginPath(); oCtx.arc(jX, jY, 6, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill(); 
-            oCtx.beginPath(); oCtx.arc(cX, cY, 3, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill(); 
-
-            // Resonantie zichtlijn (Aarde -> Komeet)
-            oCtx.beginPath(); oCtx.moveTo(eX, eY); oCtx.lineTo(cX, cY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.4)'; oCtx.stroke();
+            // Kijklijn vanuit Aarde
+            oCtx.beginPath(); oCtx.moveTo(cx + 60, cy + 30); oCtx.lineTo(cometX, cometY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.5)'; oCtx.stroke();
         }
 
+        // --- 2. Teken de Resonantie Grafiek (Linksonder) ---
+        function drawResonanceGraph() {
+            const resCanvas = document.getElementById('resonanceCanvas');
+            const rCtx = resCanvas.getContext('2d');
+            const width = resCanvas.width;
+            const height = resCanvas.height;
+
+            // Assen
+            rCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+            rCtx.beginPath(); rCtx.moveTo(30, 10); rCtx.lineTo(30, height - 20); rCtx.lineTo(width - 10, height - 20); rCtx.stroke();
+            
+            // Labels
+            rCtx.fillStyle = '#94a3b8'; rCtx.font = '10px sans-serif';
+            rCtx.fillText("φ", 15, 20);
+            rCtx.fillText("Tijd (jaren)", width / 2, height - 5);
+
+            // Libration wave (gedempte sinus)
+            rCtx.beginPath();
+            rCtx.strokeStyle = '#f59e0b';
+            for (let x = 0; x < width - 40; x++) {
+                // Simuleer de φ = λ - 3λ_j + ϖ stabilisatie
+                let damping = Math.exp(-x * 0.015);
+                let y = (height / 2) - 10 + Math.sin(x * 0.3) * 40 * damping;
+                if (x === 0) rCtx.moveTo(30 + x, y);
+                else rCtx.lineTo(30 + x, y);
+            }
+            rCtx.stroke();
+        }
+
+        // --- 3. Teken het Kompas (Rechts) ---
         function drawCompass() {
             const cCanvas = document.getElementById('compassCanvas');
             const cCtx = cCanvas.getContext('2d');
@@ -394,47 +315,43 @@
             const ccy = cCanvas.height / 2;
             const radius = 80;
 
-            cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+            // Achtergrond cirkel
             cCtx.beginPath(); cCtx.arc(ccx, ccy, radius, 0, Math.PI * 2); cCtx.fillStyle = '#0f172a'; cCtx.fill(); cCtx.strokeStyle = '#334155'; cCtx.lineWidth = 2; cCtx.stroke();
-            
-            cCtx.fillStyle = '#94a3b8'; cCtx.font = '12px bold sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
-            cCtx.fillText("N", ccx, ccy - radius + 15); cCtx.fillText("Z", ccx, ccy + radius - 15);
-            cCtx.fillText("O", ccx + radius - 15, ccy); cCtx.fillText("W", ccx - radius + 15, ccy);
 
-            // Doelwit hoek renderen obv currentAzimut
-            const azimutRad = (currentAzimut - 90) * (Math.PI / 180); 
+            // Richtingen
+            cCtx.fillStyle = '#94a3b8'; cCtx.font = '12px bold sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
+            cCtx.fillText("N", ccx, ccy - radius + 15);
+            cCtx.fillText("Z", ccx, ccy + radius - 15);
+            cCtx.fillText("O", ccx + radius - 15, ccy);
+            cCtx.fillText("W", ccx - radius + 15, ccy);
+
+            // Rasterlijnen
+            cCtx.beginPath(); cCtx.moveTo(ccx, ccy - radius); cCtx.lineTo(ccx, ccy + radius); cCtx.strokeStyle = 'rgba(255,255,255,0.05)'; cCtx.stroke();
+            cCtx.beginPath(); cCtx.moveTo(ccx - radius, ccy); cCtx.lineTo(ccx + radius, ccy); cCtx.stroke();
+
+            // Doelwit (Azimut 56.7) - N=0, O=90
+            const azimutRad = (56.7 - 90) * (Math.PI / 180); 
             const targetX = ccx + Math.cos(azimutRad) * (radius - 25);
             const targetY = ccy + Math.sin(azimutRad) * (radius - 25);
 
-            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.2, azimutRad + 0.2); cCtx.fillStyle = 'rgba(245, 158, 11, 0.2)'; cCtx.fill();
+            // Teken Kijkveld Hoek
+            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.3, azimutRad + 0.3); cCtx.fillStyle = 'rgba(16, 185, 129, 0.15)'; cCtx.fill();
+
+            // Doelwit markering
+            cCtx.beginPath(); cCtx.arc(targetX, targetY, 5, 0, Math.PI * 2); cCtx.fillStyle = '#10b981'; cCtx.fill(); cCtx.shadowBlur = 10; cCtx.shadowColor = '#10b981';
             
-            // Markeer rood als onder horizon, groen als boven
-            const markerColor = currentElevatie > 0 ? '#10b981' : '#ef4444';
-            cCtx.beginPath(); cCtx.arc(targetX, targetY, 4, 0, Math.PI * 2); cCtx.fillStyle = markerColor; cCtx.fill(); cCtx.shadowBlur = 10; cCtx.shadowColor = markerColor;
-            
-            cCtx.shadowBlur = 0; 
-            cCtx.fillStyle = markerColor;
-            cCtx.fillText(`${currentElevatie > 0 ? '+' : ''}${currentElevatie.toFixed(1)}°`, ccx, ccy + 30);
+            // Elevatie text indicator
+            cCtx.shadowBlur = 0;
+            cCtx.fillStyle = '#ef4444';
+            cCtx.fillText("-6.2° (Zichtlijn)", ccx, ccy + 30);
         }
 
-        let graphOffset = 0;
-        function drawResonanceGraph() {
-            const resCanvas = document.getElementById('resonanceCanvas');
-            const rCtx = resCanvas.getContext('2d');
-            rCtx.clearRect(0, 0, resCanvas.width, resCanvas.height);
-            rCtx.beginPath(); rCtx.strokeStyle = '#f59e0b';
-            
-            if (rtcActive) graphOffset += 0.05;
-            
-            for (let x = 0; x < resCanvas.width; x++) {
-                let y = (resCanvas.height / 2) + Math.sin((x * 0.2) - graphOffset) * 15 * Math.exp(-x * 0.015);
-                if (x === 0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
-            }
-            rCtx.stroke();
-        }
-
-        // Init
-        animate();
+        // Initieer alle renders
+        window.onload = () => {
+            drawOrbitSystem();
+            drawResonanceGraph();
+            drawCompass();
+        };
     </script>
 </body>
 </html>
