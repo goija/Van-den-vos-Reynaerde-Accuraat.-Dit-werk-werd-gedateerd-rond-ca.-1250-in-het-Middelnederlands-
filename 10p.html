@@ -2,14 +2,14 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>10P/Tempel Mobile Dashboard - WebRTC & NASA API</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10P/Tempel 2 - WebRTC Telemetrie & Versiebeheer</title>
     <style>
         :root {
-            --bg-color: #080c16;
-            --panel-bg: #121929;
+            --bg-color: #0b101e;
+            --panel-bg: #141c2f;
             --text-main: #e2e8f0;
-            --text-muted: #64748b;
+            --text-muted: #94a3b8;
             --accent-gold: #f59e0b;
             --accent-blue: #3b82f6;
             --accent-green: #10b981;
@@ -18,280 +18,219 @@
             --log-bg: #050505;
         }
 
-        * { box-sizing: border-box; }
-
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 15px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .header { text-align: center; margin-bottom: 20px; width: 100%; }
-        .header h1 { color: var(--accent-gold); margin: 0 0 5px 0; font-size: 1.4rem; }
-        .header p { color: var(--text-muted); margin: 0; font-size: 0.8rem; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: var(--accent-gold); margin: 0 0 5px 0; font-size: 1.8rem; }
+        .header p { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
 
-        /* Mobiel-eerste Grid Systeem */
         .dashboard {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 100%;
-            max-width: 1400px;
-        }
-
-        /* Desktop lay-out */
-        @media (min-width: 1024px) {
-            .dashboard {
-                display: grid;
-                grid-template-columns: 300px 1fr 300px;
-            }
+            display: grid;
+            grid-template-columns: 320px 760px 320px;
+            gap: 20px;
+            max-width: 1440px;
         }
 
         .panel {
             background-color: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
         }
 
         .panel-title {
             color: var(--accent-gold);
-            font-size: 0.9rem;
+            font-size: 1rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
+            padding-bottom: 10px;
             margin-top: 0;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
-
-        .control-group { margin-bottom: 15px; }
-        .control-group label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; color: var(--text-muted); }
-        .value-display { color: var(--text-main); font-weight: bold; }
-        input[type="range"] { width: 100%; accent-color: var(--text-muted); opacity: 0.7; }
 
         .btn {
-            color: #000; border: none; padding: 12px 15px; border-radius: 6px; 
-            font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%; 
-            margin-top: 10px; transition: background 0.3s; text-transform: uppercase;
+            background-color: var(--accent-gold); color: #000; border: none;
+            padding: 10px 15px; border-radius: 4px; font-weight: bold;
+            cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.3s;
         }
-        .btn:active { transform: scale(0.98); }
-        .btn-nasa { background-color: var(--accent-gold); }
-        .btn-nasa:hover { background-color: #d97706; }
+        .btn:hover { background-color: #d97706; }
         .btn-webrtc { background-color: var(--accent-blue); color: white; }
         .btn-webrtc:hover { background-color: #2563eb; }
         .btn-stop { background-color: var(--accent-red); color: white; }
+        .btn-stop:hover { background-color: #dc2626; }
         
         .canvas-container {
-            position: relative; width: 100%; min-height: 300px; height: 50vh;
-            background: #0d1320; border: 1px solid var(--border-color); 
-            border-radius: 4px; overflow: hidden;
+            position: relative; width: 100%; height: 500px;
+            background: radial-gradient(circle at center, #1a2436 0%, #0b101e 100%);
+            border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;
         }
-        
-        canvas { display: block; width: 100%; height: 100%; }
-        #compassCanvas, #resonanceCanvas { height: auto; }
-        
-        .data-list { list-style: none; padding: 0; margin: 0; font-size: 0.85rem; }
-        .data-list li { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .data-value { color: var(--text-main); font-family: monospace; font-size: 0.95rem; }
-        
-        .compass-container { display: flex; flex-direction: column; align-items: center; margin-top: 10px; }
-        
-        .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding-top: 10px; color: var(--text-muted); font-size: 0.75rem; }
-        .legend span { display: flex; align-items: center; gap: 5px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .dot.sun { background: #facc15; } .dot.earth { background: #3b82f6; } .dot.comet { background: #ffffff; } .dot.jupiter { background: #f97316; }
 
-        /* Consoles */
+        canvas { display: block; }
+        
+        .data-list { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; }
+        .data-list li { display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .data-value { color: var(--accent-gold); font-family: monospace; font-size: 1rem; }
+        .compass-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+        
+        /* Consoles & Logs */
         .console-box {
-            background-color: var(--log-bg); border: 1px solid var(--border-color); border-radius: 4px;
-            padding: 10px; font-family: monospace; font-size: 0.75rem; margin-top: 10px;
-            display: flex; flex-direction: column; overflow-y: auto;
+            background-color: var(--log-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
         }
-        .webrtc-console { height: 100px; color: var(--accent-green); }
-        .version-console { height: 80px; color: var(--text-muted); }
+        
+        .webrtc-console { height: 120px; overflow-y: auto; color: var(--accent-green); }
+        .version-console { height: 100px; overflow-y: auto; color: var(--text-muted); }
+        
         .log-entry { margin-bottom: 3px; }
-        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; background-color: #374151; color: #d1d5db; }
+        .log-error { color: var(--accent-red); }
+        .commit-hash { color: var(--accent-gold); }
+        
+        .status-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: bold; background-color: #374151; color: #d1d5db;
+        }
         .status-connected { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
-        #apiStatus { font-size: 0.75rem; text-align: center; margin-top: 10px; min-height: 15px; color: var(--accent-gold); }
-
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>☄️ Komeet 10P/Tempel Mobile Command</h1>
-        <p>Laren, NL — Epoche: 15 Aug 2026, 15:54:54</p>
+        <h1>☄️ Komeet 10P/Tempel 2 & WebRTC Telemetrie</h1>
+        <p>Realtime Baansimulatie & Sensor Tracking — Laren, NL (Epoche 15 Aug 2026, 15:42)</p>
     </div>
 
     <div class="dashboard">
-        <!-- Kolom 1: Parameters, NASA & Versiebeheer -->
-        <div class="column" style="display: flex; flex-direction: column; gap: 15px;">
+        <!-- Kolom 1: WebRTC & Versiebeheer -->
+        <div class="column">
             <div class="panel">
-                <h2 class="panel-title">⚙️ BAANPARAMETERS</h2>
-                <div class="control-group">
-                    <label>Excentriciteit (e): <span class="value-display" id="eccDisplay">0.530</span></label>
-                    <input type="range" id="eccSlider" min="0" max="1000" value="530" disabled>
+                <h2 class="panel-title">📡 WebRTC DataChannel</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 0.9rem; color: var(--text-muted);">Sensor Link:</span>
+                    <span id="rtcStatus" class="status-badge">OFFLINE</span>
                 </div>
-                <div class="control-group">
-                    <label>Halve Lange As (a): <span class="value-display" id="smaDisplay">3.120 AE</span></label>
-                    <input type="range" id="smaSlider" min="1000" max="5000" value="3120" disabled>
+                
+                <button id="connectRtcBtn" class="btn btn-webrtc">INITIEER LOOPBACK</button>
+                <button id="simulateSensorBtn" class="btn" style="display: none;">START SENSOR TRACKING</button>
+
+                <div class="console-box webrtc-console" id="rtcConsole">
+                    <div class="log-entry" style="color: #6b7280;">[SYS] Standby voor WebRTC verbinding...</div>
                 </div>
-                <button id="nasaBtn" class="btn btn-nasa">BAANGEGEVENS BIJGEWERKT<br>(NASA JPL API)</button>
-                <div id="apiStatus">Gesynchroniseerd (NASA API Standby)</div>
             </div>
 
-            <div class="panel">
-                <h2 class="panel-title">🛠️ VERSIEBEHEER (GIT)</h2>
+            <div class="panel" style="margin-top: 20px;">
+                <h2 class="panel-title">🛠️ Versiebeheer (Git)</h2>
                 <div class="console-box version-console">
-                    <div class="log-entry"><span style="color: var(--accent-gold);">v3.0.0</span> - Mobile Responsive UI & API</div>
-                    <div class="log-entry"><span style="color: var(--accent-gold);">v2.1.0</span> - WebRTC DataChannel actief</div>
-                    <div class="log-entry"><span style="color: var(--accent-gold);">v2.0.5</span> - Calibratie (75.3°, -52.4°)</div>
+                    <div class="log-entry"><span class="commit-hash">v2.1.0</span> - WebRTC DataChannel geïmplementeerd</div>
+                    <div class="log-entry"><span class="commit-hash">v2.0.5</span> - Elevatie & Azimut calibratie (72.0°, -54.3°)</div>
+                    <div class="log-entry"><span class="commit-hash">v2.0.1</span> - Kompas UI optimalisaties toegevoegd</div>
+                    <div class="log-entry"><span class="commit-hash">v1.8.4</span> - 10P/Tempel Kepler-baanelementen update</div>
                 </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; text-align: right;">Branch: main | Status: Clean</div>
             </div>
         </div>
 
-        <!-- Kolom 2: Hoofd Simulatie -->
-        <div class="panel">
-            <h2 class="panel-title" style="margin-bottom: 5px;">🌌 KEPLER SIMULATOR</h2>
-            <div class="canvas-container" id="canvasWrapper">
-                <canvas id="orbitCanvas" width="800" height="600"></canvas>
+        <!-- Kolom 2: Simulatie Canvas -->
+        <div class="panel" style="padding: 10px;">
+            <div class="canvas-container">
+                <canvas id="orbitCanvas" width="740" height="500"></canvas>
             </div>
-            <div class="legend">
-                <span><i class="dot sun"></i> Zon</span>
-                <span><i class="dot earth"></i> Aarde</span>
-                <span><i class="dot comet"></i> 10P/Tempel</span>
-                <span><i class="dot jupiter"></i> Jupiter</span>
+            <div style="display: flex; justify-content: space-between; padding: 10px 20px; color: var(--text-muted); font-size: 0.85rem;">
+                <span>🟡 Zon (0 AE)</span>
+                <span>🔵 Aarde (1.0 AE)</span>
+                <span>🔴 10P/Tempel 2</span>
+                <span>🟠 Jupiter (5.2 AE)</span>
             </div>
         </div>
 
-        <!-- Kolom 3: WebRTC & Sensor Data -->
-        <div class="column" style="display: flex; flex-direction: column; gap: 15px;">
+        <!-- Kolom 3: Telescoop Richting & Kompas -->
+        <div class="column">
             <div class="panel">
-                <h2 class="panel-title">📡 SENSOR TELEMETRIE</h2>
+                <h2 class="panel-title">🔭 Live Sensor Data</h2>
                 <ul class="data-list">
-                    <li><span>Azimut:</span> <span class="data-value" id="azimuthDisplay">75.30°</span></li>
-                    <li><span>Elevatie:</span> <span class="data-value" id="elevationDisplay" style="color: var(--accent-red);">-52.40°</span></li>
-                    <li><span>Zichtbaarheid:</span> <span class="data-value" id="horizonStatus" style="font-size: 0.75rem; color: var(--accent-red);">Onder horizon</span></li>
+                    <li><span>Doelwit:</span> <span class="data-value" style="color: var(--text-main);">10P/Tempel 2</span></li>
+                    <li><span>Sensor Azimut:</span> <span class="data-value" id="azimuthDisplay">72.00°</span></li>
+                    <li><span>Sensor Elevatie:</span> <span class="data-value" id="elevationDisplay" style="color: var(--accent-red);">-54.30°</span></li>
+                    <li><span>Bron:</span> <span class="data-value" id="dataSource" style="font-size: 0.8rem;">Statisch (Planit)</span></li>
+                    <li><span>Horizon Status:</span> <span class="data-value" id="horizonStatus" style="font-size: 0.8rem; color: var(--accent-red);">Onder horizon</span></li>
                 </ul>
                 <div class="compass-container">
                     <canvas id="compassCanvas" width="200" height="200"></canvas>
                 </div>
             </div>
-
-            <div class="panel">
-                <h2 class="panel-title">🛰️ WEBRTC LOOPBACK</h2>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 0.8rem; color: var(--text-muted);">DataChannel:</span>
-                    <span id="rtcStatus" class="status-badge">OFFLINE</span>
-                </div>
-                <button id="connectRtcBtn" class="btn btn-webrtc">VERBIND TELESCOOP</button>
-                <button id="simulateSensorBtn" class="btn" style="display: none;">START TRACKING</button>
-                <div class="console-box webrtc-console" id="rtcConsole">
-                    <div class="log-entry" style="color: #6b7280;">[SYS] Wachtend op WebRTC connectie...</div>
-                </div>
-            </div>
             
-            <div class="panel">
-                <h2 class="panel-title">📊 1:3 JUPITER RESONANTIE</h2>
-                <canvas id="resonanceCanvas" width="260" height="80" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px;"></canvas>
+            <div class="panel" style="margin-top: 20px;">
+                 <h2 class="panel-title">📊 Resonantie (1:3)</h2>
+                 <canvas id="resonanceCanvas" width="280" height="80" style="background: #0b101e; border: 1px solid #1e293b; border-radius: 4px;"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // 1. BASISVARIABELEN & UI
-        // ==========================================
-        let currentEcc = 0.53;
-        let currentSma = 3.12;
+        // --- 1. GLOBALE VARIABELEN ---
+        // Planit Pro Base Data (15 Aug 2026 15:42)
+        const BASE_AZIMUTH = 72.0;
+        const BASE_ELEVATION = -54.3;
+        
+        let currentAzimut = BASE_AZIMUTH;
+        let currentElevatie = BASE_ELEVATION;
+        let rtcActive = false;
+        
+        // Baan simulatie hoeken
         let earthAngle = 4.2; 
         let jupiterAngle = 1.2; 
         let cometAngle = 0.5;
 
-        // Startwaarden o.b.v. "afbeelding_18.jpg"
-        let currentAzimut = 75.3;
-        let currentElevatie = -52.4;
-        let rtcActive = false;
-
-        const eccDisplay = document.getElementById('eccDisplay');
-        const smaDisplay = document.getElementById('smaDisplay');
-        const apiStatus = document.getElementById('apiStatus');
+        // UI Elementen
         const azimuthDisplay = document.getElementById('azimuthDisplay');
         const elevationDisplay = document.getElementById('elevationDisplay');
+        const dataSource = document.getElementById('dataSource');
         const horizonStatus = document.getElementById('horizonStatus');
-
-        // ==========================================
-        // 2. NASA JPL API INTEGRATIE
-        // ==========================================
-        document.getElementById('nasaBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('nasaBtn');
-            btn.innerText = "BEZIG MET LADEN (JPL)...";
-            btn.style.backgroundColor = "var(--text-muted)";
-            apiStatus.innerText = "Verbinden met server...";
-            
-            try {
-                // Fetch live data van de NASA JPL API
-                const response = await fetch('https://ssd-api.jpl.nasa.gov/sbdb.api?sstr=10P');
-                const data = await response.json();
-                
-                if (data && data.orbit && data.orbit.elements) {
-                    const eccData = data.orbit.elements.find(el => el.name === 'e');
-                    const smaData = data.orbit.elements.find(el => el.name === 'a');
-                    
-                    if(eccData && smaData) {
-                        currentEcc = parseFloat(eccData.value);
-                        currentSma = parseFloat(smaData.value);
-                        
-                        eccDisplay.innerText = currentEcc.toFixed(4);
-                        smaDisplay.innerText = currentSma.toFixed(4) + " AE";
-                        document.getElementById('eccSlider').value = currentEcc * 1000;
-                        document.getElementById('smaSlider').value = currentSma * 1000;
-                        
-                        apiStatus.innerText = "✓ Succes: NASA data geüpdatet.";
-                        apiStatus.style.color = "var(--accent-green)";
-                    }
-                } else {
-                    throw new Error("Ongeldig dataformaat.");
-                }
-            } catch (error) {
-                console.error("API Error:", error);
-                apiStatus.innerText = "⚠️ NASA API Fout: Fallback actief.";
-                apiStatus.style.color = "var(--accent-red)";
-            } finally {
-                btn.innerHTML = "BAANGEGEVENS BIJGEWERKT<br>(NASA JPL API)";
-                btn.style.backgroundColor = "var(--accent-gold)";
-            }
-        });
-
-        // ==========================================
-        // 3. WEBRTC SENSOR LOOPBACK
-        // ==========================================
-        let localConnection, remoteConnection, sendChannel, receiveChannel, sensorInterval;
         const rtcConsole = document.getElementById('rtcConsole');
         const rtcStatusBadge = document.getElementById('rtcStatus');
-
+        
         function logRtc(msg, type="info") {
             const entry = document.createElement('div');
             entry.className = type === "error" ? "log-entry log-error" : "log-entry";
-            entry.innerText = `[${new Date().toLocaleTimeString('nl-NL')}] ${msg}`;
+            let time = new Date().toLocaleTimeString('nl-NL');
+            entry.innerText = `[${time}] ${msg}`;
             rtcConsole.appendChild(entry);
             rtcConsole.scrollTop = rtcConsole.scrollHeight;
         }
 
-        document.getElementById('connectRtcBtn').addEventListener('click', async () => {
-            logRtc("Initialiseer RTCPeerConnection...");
+        // --- 2. WEBRTC SENSOR TRACKING ---
+        let localConnection, remoteConnection;
+        let sendChannel, receiveChannel;
+        let sensorInterval;
+
+        document.getElementById('connectRtcBtn').addEventListener('click', setupWebRTC);
+        document.getElementById('simulateSensorBtn').addEventListener('click', toggleSensorSimulation);
+
+        async function setupWebRTC() {
+            logRtc("Initialiseer RTCPeerConnections...");
+            
             localConnection = new RTCPeerConnection(); 
             remoteConnection = new RTCPeerConnection(); 
 
@@ -299,15 +238,18 @@
             remoteConnection.onicecandidate = e => !e.candidate || localConnection.addIceCandidate(e.candidate);
 
             sendChannel = localConnection.createDataChannel("telemetry");
-            
+            sendChannel.onopen = () => logRtc("Tx Channel: OPEN");
+
             remoteConnection.ondatachannel = (event) => {
                 receiveChannel = event.channel;
                 receiveChannel.onopen = () => {
-                    logRtc("DataChannel: OPEN", "success");
+                    logRtc("Rx Channel: OPEN", "success");
                     rtcStatusBadge.innerText = "CONNECTED";
                     rtcStatusBadge.className = "status-badge status-connected";
                     document.getElementById('connectRtcBtn').style.display = 'none';
                     document.getElementById('simulateSensorBtn').style.display = 'block';
+                    dataSource.innerText = "WebRTC (Idle)";
+                    dataSource.style.color = "var(--accent-blue)";
                 };
                 receiveChannel.onmessage = handleIncomingTelemetry;
             };
@@ -316,6 +258,7 @@
                 const offer = await localConnection.createOffer();
                 await localConnection.setLocalDescription(offer);
                 await remoteConnection.setRemoteDescription(offer);
+
                 const answer = await remoteConnection.createAnswer();
                 await remoteConnection.setLocalDescription(answer);
                 await localConnection.setRemoteDescription(answer);
@@ -323,169 +266,174 @@
             } catch (e) {
                 logRtc(`WebRTC Fout: ${e.message}`, "error");
             }
-        });
+        }
 
         function handleIncomingTelemetry(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'telemetry') {
-                currentAzimut = data.azimut;
-                currentElevatie = data.elevatie;
-                
-                azimuthDisplay.innerText = currentAzimut.toFixed(2) + '°';
-                elevationDisplay.innerText = (currentElevatie > 0 ? '+' : '') + currentElevatie.toFixed(2) + '°';
-                
-                if (currentElevatie > 0) {
-                    elevationDisplay.style.color = horizonStatus.style.color = "var(--accent-green)";
-                    horizonStatus.innerText = "Boven horizon";
-                } else {
-                    elevationDisplay.style.color = horizonStatus.style.color = "var(--accent-red)";
-                    horizonStatus.innerText = "Onder horizon";
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'telemetry') {
+                    currentAzimut = data.azimut;
+                    currentElevatie = data.elevatie;
+                    
+                    azimuthDisplay.innerText = currentAzimut.toFixed(2) + '°';
+                    elevationDisplay.innerText = (currentElevatie > 0 ? '+' : '') + currentElevatie.toFixed(2) + '°';
+                    
+                    if (currentElevatie > 0) {
+                        elevationDisplay.style.color = "var(--accent-green)";
+                        horizonStatus.innerText = "Boven horizon";
+                        horizonStatus.style.color = "var(--accent-green)";
+                    } else {
+                        elevationDisplay.style.color = "var(--accent-red)";
+                        horizonStatus.innerText = "Onder horizon";
+                        horizonStatus.style.color = "var(--accent-red)";
+                    }
+                    
+                    logRtc(`Data Rx: AZ=${data.azimut.toFixed(3)}, EL=${data.elevatie.toFixed(3)}`);
                 }
-                logRtc(`Rx: AZ=${data.azimut.toFixed(2)}, EL=${data.elevatie.toFixed(2)}`);
+            } catch (e) {
+                logRtc(`Dataparse fout: ${e.message}`, "error");
             }
         }
 
-        document.getElementById('simulateSensorBtn').addEventListener('click', () => {
+        function toggleSensorSimulation() {
             const btn = document.getElementById('simulateSensorBtn');
             if (rtcActive) {
                 clearInterval(sensorInterval);
                 rtcActive = false;
-                btn.innerText = "START TRACKING";
-                btn.className = "btn btn-webrtc";
+                btn.innerText = "START SENSOR TRACKING";
+                btn.className = "btn";
+                dataSource.innerText = "WebRTC (Idle)";
                 logRtc("Sensor tracking gestopt.");
             } else {
                 rtcActive = true;
-                btn.innerText = "STOP TRACKING";
+                btn.innerText = "STOP SENSOR TRACKING";
                 btn.className = "btn btn-stop";
-                logRtc("Tracking gestart (Siderische drift).");
+                dataSource.innerText = "WebRTC (Live)";
+                logRtc("Sensor tracking gestart (Siderische drift gesimuleerd).");
                 
+                // Simuleer realistische tracking over WebRTC
                 let simAz = currentAzimut;
                 let simEl = currentElevatie;
                 
                 sensorInterval = setInterval(() => {
                     if (sendChannel && sendChannel.readyState === "open") {
-                        simAz = (simAz + 0.05) % 360;
-                        simEl += 0.01;
-                        sendChannel.send(JSON.stringify({ type: 'telemetry', azimut: simAz, elevatie: simEl }));
-                    }
-                }, 1000);
-            }
-        });
+                        // Siderische aardrotatie drift simulatie (Aarde draait, object beweegt)
+                        simAz += 0.0041; // ca. 15 graden per uur / 3600 sec
+                        simEl += 0.0012; // Lichte stijging
+                        
+                        if(simAz >= 360) simAz -= 360;
 
-        // ==========================================
-        // 4. CANVAS RENDERING (Responsive)
-        // ==========================================
+                        const payload = JSON.stringify({
+                            type: 'telemetry',
+                            timestamp: Date.now(),
+                            target: '10P/Tempel 2',
+                            azimut: simAz,
+                            elevatie: simEl
+                        });
+                        
+                        sendChannel.send(payload);
+                    }
+                }, 1000); // 1Hz telemetry update
+            }
+        }
+
+        // --- 3. RENDERING ENGINE (Canvas) ---
         const orbitCanvas = document.getElementById('orbitCanvas');
         const oCtx = orbitCanvas.getContext('2d');
-        const wrapper = document.getElementById('canvasWrapper');
-
-        // Maak de canvas interne resolutie dynamisch schaalbaar
-        function resizeCanvas() {
-            orbitCanvas.width = wrapper.clientWidth;
-            orbitCanvas.height = wrapper.clientHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        const cx = orbitCanvas.width / 2;
+        const cy = orbitCanvas.height / 2;
 
         function animate() {
-            earthAngle -= 0.003; 
-            jupiterAngle -= (0.003 / 11.86); 
-            const cometDist = Math.sqrt(Math.pow(Math.cos(cometAngle)*210, 2) + Math.pow(Math.sin(cometAngle)*130, 2));
-            cometAngle -= (0.003 / 5.3) * (150 / cometDist);
+            // Animatie van de planeten
+            earthAngle -= 0.005; 
+            jupiterAngle -= (0.005 / 11.86); 
+            let distanceToSun = Math.sqrt(Math.pow(Math.cos(cometAngle)*210, 2) + Math.pow(Math.sin(cometAngle)*130, 2));
+            cometAngle -= (0.005 / 5.3) * (150 / distanceToSun);
 
             drawOrbitSystem();
             drawCompass();
             drawResonanceGraph();
+
             requestAnimationFrame(animate);
         }
 
         function drawOrbitSystem() {
-            const cx = orbitCanvas.width / 2;
-            const cy = orbitCanvas.height / 2;
             oCtx.clearRect(0, 0, orbitCanvas.width, orbitCanvas.height);
             
-            // Bereken dynamische schaal o.b.v. schermbreedte
-            const scale = Math.min(orbitCanvas.width / 800, orbitCanvas.height / 600);
-            
             // Raster
-            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-            for(let i=0; i<orbitCanvas.width; i+=30*scale) { oCtx.beginPath(); oCtx.moveTo(i,0); oCtx.lineTo(i, orbitCanvas.height); oCtx.stroke(); }
-            for(let i=0; i<orbitCanvas.height; i+=30*scale) { oCtx.beginPath(); oCtx.moveTo(0,i); oCtx.lineTo(orbitCanvas.width, i); oCtx.stroke(); }
+            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            for(let i=0; i<orbitCanvas.width; i+=40) { oCtx.beginPath(); oCtx.moveTo(i,0); oCtx.lineTo(i, orbitCanvas.height); oCtx.stroke(); }
+            for(let i=0; i<orbitCanvas.height; i+=40) { oCtx.beginPath(); oCtx.moveTo(0,i); oCtx.lineTo(orbitCanvas.width, i); oCtx.stroke(); }
 
             // Zon
-            oCtx.beginPath(); oCtx.arc(cx, cy, 6*scale, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); 
-
-            // Banen Aarde & Jupiter
-            oCtx.beginPath(); oCtx.ellipse(cx, cy, 90*scale, 60*scale, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(59, 130, 246, 0.4)'; oCtx.stroke(); 
-            oCtx.beginPath(); oCtx.ellipse(cx, cy, 340*scale, 220*scale, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke(); 
+            oCtx.beginPath(); oCtx.arc(cx, cy, 8, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); 
             
-            // Komeetbaan (NASA variabelen)
-            const a = currentSma * 90 * scale; 
-            const b = a * Math.sqrt(1 - Math.pow(currentEcc, 2)); 
-            const c_focal = a * currentEcc; 
-            
-            oCtx.beginPath(); 
-            oCtx.ellipse(cx + c_focal, cy, a, b, Math.PI / 10, 0, Math.PI * 2); 
-            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; oCtx.setLineDash([4, 4]); oCtx.stroke(); oCtx.setLineDash([]); 
+            // Banen
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 80, 50, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; oCtx.stroke(); 
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 320, 200, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke(); 
+            oCtx.beginPath(); oCtx.ellipse(cx + 40, cy, 210, 130, Math.PI / 8, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; oCtx.setLineDash([4, 4]); oCtx.stroke(); oCtx.setLineDash([]); 
 
-            // Posities
-            let eX = cx + Math.cos(earthAngle) * 90*scale; let eY = cy + Math.sin(earthAngle) * 60*scale;
-            let jX = cx + Math.cos(jupiterAngle) * 340*scale; let jY = cy + Math.sin(jupiterAngle) * 220*scale;
-            let rot = Math.PI / 10;
-            let unrotCX = Math.cos(cometAngle) * a; let unrotCY = Math.sin(cometAngle) * b;
-            let cX = cx + c_focal + (unrotCX * Math.cos(rot) - unrotCY * Math.sin(rot));
-            let cY = cy + (unrotCX * Math.sin(rot) + unrotCY * Math.cos(rot));
+            let eX = cx + Math.cos(earthAngle) * 80; let eY = cy + Math.sin(earthAngle) * 50;
+            let jX = cx + Math.cos(jupiterAngle) * 320; let jY = cy + Math.sin(jupiterAngle) * 200;
+            let cX = cx + 40 + (Math.cos(cometAngle)*210 * Math.cos(Math.PI/8) - Math.sin(cometAngle)*130 * Math.sin(Math.PI/8));
+            let cY = cy + (Math.cos(cometAngle)*210 * Math.sin(Math.PI/8) + Math.sin(cometAngle)*130 * Math.cos(Math.PI/8));
 
-            // Teken lichamen
-            oCtx.beginPath(); oCtx.arc(eX, eY, 4*scale, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill(); 
-            oCtx.beginPath(); oCtx.arc(jX, jY, 5*scale, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill(); 
-            
-            // Komeet & Zichtlijn
-            oCtx.beginPath(); oCtx.arc(cX, cY, 3*scale, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill(); 
-            oCtx.beginPath(); oCtx.moveTo(eX, eY); oCtx.lineTo(cX, cY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.6)'; oCtx.stroke();
+            // Planeten
+            oCtx.beginPath(); oCtx.arc(eX, eY, 4, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill(); 
+            oCtx.beginPath(); oCtx.arc(jX, jY, 6, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill(); 
+            oCtx.beginPath(); oCtx.arc(cX, cY, 3, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill(); 
+
+            // Resonantie zichtlijn (Aarde -> Komeet)
+            oCtx.beginPath(); oCtx.moveTo(eX, eY); oCtx.lineTo(cX, cY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.4)'; oCtx.stroke();
         }
 
-        // Kompas
         function drawCompass() {
             const cCanvas = document.getElementById('compassCanvas');
             const cCtx = cCanvas.getContext('2d');
-            const ccx = cCanvas.width / 2, ccy = cCanvas.height / 2, radius = 70;
+            const ccx = cCanvas.width / 2;
+            const ccy = cCanvas.height / 2;
+            const radius = 80;
 
             cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
-            cCtx.beginPath(); cCtx.arc(ccx, ccy, radius, 0, Math.PI * 2); cCtx.fillStyle = '#0a101d'; cCtx.fill(); cCtx.strokeStyle = '#1e293b'; cCtx.stroke();
+            cCtx.beginPath(); cCtx.arc(ccx, ccy, radius, 0, Math.PI * 2); cCtx.fillStyle = '#0f172a'; cCtx.fill(); cCtx.strokeStyle = '#334155'; cCtx.lineWidth = 2; cCtx.stroke();
             
-            cCtx.fillStyle = '#64748b'; cCtx.font = '10px sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
-            cCtx.fillText("N", ccx, ccy - radius - 10); cCtx.fillText("Z", ccx, ccy + radius + 10);
-            cCtx.fillText("O", ccx + radius + 10, ccy); cCtx.fillText("W", ccx - radius - 10, ccy);
+            cCtx.fillStyle = '#94a3b8'; cCtx.font = '12px bold sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
+            cCtx.fillText("N", ccx, ccy - radius + 15); cCtx.fillText("Z", ccx, ccy + radius - 15);
+            cCtx.fillText("O", ccx + radius - 15, ccy); cCtx.fillText("W", ccx - radius + 15, ccy);
 
+            // Doelwit hoek renderen obv currentAzimut
             const azimutRad = (currentAzimut - 90) * (Math.PI / 180); 
-            const targetX = ccx + Math.cos(azimutRad) * (radius - 15);
-            const targetY = ccy + Math.sin(azimutRad) * (radius - 15);
+            const targetX = ccx + Math.cos(azimutRad) * (radius - 25);
+            const targetY = ccy + Math.sin(azimutRad) * (radius - 25);
 
-            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.2, azimutRad + 0.2); cCtx.fillStyle = 'rgba(59, 130, 246, 0.15)'; cCtx.fill();
+            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.2, azimutRad + 0.2); cCtx.fillStyle = 'rgba(245, 158, 11, 0.2)'; cCtx.fill();
             
+            // Markeer rood als onder horizon, groen als boven
             const markerColor = currentElevatie > 0 ? '#10b981' : '#ef4444';
-            cCtx.beginPath(); cCtx.arc(targetX, targetY, 4, 0, Math.PI * 2); cCtx.fillStyle = markerColor; cCtx.fill();
+            cCtx.beginPath(); cCtx.arc(targetX, targetY, 4, 0, Math.PI * 2); cCtx.fillStyle = markerColor; cCtx.fill(); cCtx.shadowBlur = 10; cCtx.shadowColor = markerColor;
+            
+            cCtx.shadowBlur = 0; 
+            cCtx.fillStyle = markerColor;
+            cCtx.fillText(`${currentElevatie > 0 ? '+' : ''}${currentElevatie.toFixed(1)}°`, ccx, ccy + 30);
         }
 
-        // Grafiek
         let graphOffset = 0;
         function drawResonanceGraph() {
             const resCanvas = document.getElementById('resonanceCanvas');
             const rCtx = resCanvas.getContext('2d');
             rCtx.clearRect(0, 0, resCanvas.width, resCanvas.height);
-            
-            rCtx.strokeStyle = 'rgba(255,255,255,0.1)'; rCtx.beginPath(); rCtx.moveTo(20, 10); rCtx.lineTo(20, 60); rCtx.lineTo(240, 60); rCtx.stroke();
-            
             rCtx.beginPath(); rCtx.strokeStyle = '#f59e0b';
-            if(rtcActive) graphOffset += 0.03;
-            for (let x = 0; x < 220; x++) {
-                let y = 35 + Math.sin((x * 0.2) - graphOffset) * 20 * Math.exp(-x * 0.015);
-                if (x === 0) rCtx.moveTo(20 + x, y); else rCtx.lineTo(20 + x, y);
+            
+            if (rtcActive) graphOffset += 0.05;
+            
+            for (let x = 0; x < resCanvas.width; x++) {
+                let y = (resCanvas.height / 2) + Math.sin((x * 0.2) - graphOffset) * 15 * Math.exp(-x * 0.015);
+                if (x === 0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             }
             rCtx.stroke();
         }
 
+        // Init
         animate();
     </script>
 </body>
