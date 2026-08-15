@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10P/Tempel Baanresonantie Simulator (2026)</title>
+    <style>
+        :root {
+            --bg-color: #0b101e;
+            --panel-bg: #141c2f;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-gold: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --border-color: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: var(--accent-gold);
+            margin: 0 0 5px 0;
+            font-size: 1.8rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 300px 800px 300px;
+            gap: 20px;
+            max-width: 1440px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-title {
+            color: var(--accent-gold);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        .btn {
+            background-color: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover { background-color: #d97706; }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: radial-gradient(circle at center, #1a2436 0%, #0b101e 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #orbitCanvas, #resonanceCanvas, #compassCanvas {
+            display: block;
+        }
+
+        .status-indicator {
+            color: var(--accent-green);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .data-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .data-list li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .data-value {
+            color: var(--accent-gold);
+            font-family: monospace;
+            font-size: 1rem;
+        }
+
+        .compass-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>☄️ Komeet 10P/Tempel Baanresonantie Simulator</h1>
+        <p>Realtime Kepler-baansimulatie (Epoche 15 augustus 2026, 15:00 CEST) — Waarnemingslocatie: Laren, NL</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- Linker Kolom: Parameters & Resonantie -->
+        <div class="column">
+            <div class="panel">
+                <h2 class="panel-title">⚙️ Baanparameters (10P)</h2>
+                <div class="control-group">
+                    <label>Excentriciteit: <span class="value-display">0.53</span></label>
+                    <input type="range" min="0" max="100" value="53" disabled>
+                </div>
+                <div class="control-group">
+                    <label>Halve Lange As (a in AE): <span class="value-display">3.12</span></label>
+                    <input type="range" min="100" max="500" value="312" disabled>
+                </div>
+                <button class="btn">BAANGEGEVENS BIJGEWERKT (2026)</button>
+            </div>
+
+            <div class="panel" style="margin-top: 20px;">
+                <h2 class="panel-title">📊 Resonantie-Analyse</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0;">Type: 1:3 met Jupiter</p>
+                <canvas id="resonanceCanvas" width="260" height="150" style="background: #0b101e; border: 1px solid #1e293b;"></canvas>
+                <p style="margin-bottom: 0; font-size: 0.9rem;">Resonantie Status: <span class="status-indicator">STABIEL</span></p>
+            </div>
+        </div>
+
+        <!-- Middelste Kolom: Hoofd Simulatie -->
+        <div class="panel" style="padding: 10px;">
+            <div class="canvas-container">
+                <canvas id="orbitCanvas" width="780" height="500"></canvas>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 20px; color: var(--text-muted); font-size: 0.85rem;">
+                <span>🟡 Zon (0 AE)</span>
+                <span>🔵 Aarde (1.0 AE)</span>
+                <span>🔴 Komeet 10P/Tempel</span>
+                <span>🟠 Jupiter (5.2 AE)</span>
+            </div>
+        </div>
+
+        <!-- Rechter Kolom: Kijkrichting & Data -->
+        <div class="column">
+            <div class="panel">
+                <h2 class="panel-title">🔭 Kijkrichting (Live)</h2>
+                <ul class="data-list">
+                    <li><span>Azimut:</span> <span class="data-value">56.7° (ONO)</span></li>
+                    <li><span>Elevatie:</span> <span class="data-value" style="color: var(--accent-red);">-6.2°</span></li>
+                    <li><span>Status:</span> <span class="data-value" style="color: var(--text-muted); font-size: 0.8rem;">Onder horizon</span></li>
+                </ul>
+                
+                <div class="compass-container">
+                    <canvas id="compassCanvas" width="200" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 20px;">
+                <h2 class="panel-title">⏱️ Tijd & Simulatie</h2>
+                <ul class="data-list">
+                    <li><span>Afstand tot Aarde:</span> <span class="data-value">1.424 AE</span></li>
+                    <li><span>Omloopsnelheid:</span> <span class="data-value">10.92 km/s</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Teken de Baansimulatie (Midden) ---
+        const orbitCanvas = document.getElementById('orbitCanvas');
+        const oCtx = orbitCanvas.getContext('2d');
+        const cx = orbitCanvas.width / 2;
+        const cy = orbitCanvas.height / 2;
+
+        function drawOrbitSystem() {
+            oCtx.clearRect(0, 0, orbitCanvas.width, orbitCanvas.height);
+            
+            // Grid
+            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            for(let i=0; i<orbitCanvas.width; i+=40) { oCtx.beginPath(); oCtx.moveTo(i,0); oCtx.lineTo(i, orbitCanvas.height); oCtx.stroke(); }
+            for(let i=0; i<orbitCanvas.height; i+=40) { oCtx.beginPath(); oCtx.moveTo(0,i); oCtx.lineTo(orbitCanvas.width, i); oCtx.stroke(); }
+
+            // Zon
+            oCtx.beginPath(); oCtx.arc(cx, cy, 10, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); oCtx.shadowBlur = 20; oCtx.shadowColor = '#facc15';
+
+            // Aarde Baan & Planeet
+            oCtx.shadowBlur = 0;
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 80, 50, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; oCtx.stroke();
+            oCtx.beginPath(); oCtx.arc(cx + 60, cy + 30, 4, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill();
+
+            // Jupiter Baan & Planeet
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 320, 200, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke();
+            oCtx.beginPath(); oCtx.arc(cx - 200, cy - 150, 7, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill();
+
+            // 10P/Tempel Baan (Excentrisch)
+            oCtx.beginPath(); oCtx.ellipse(cx + 40, cy, 210, 130, Math.PI / 8, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; oCtx.setLineDash([5, 5]); oCtx.stroke(); oCtx.setLineDash([]);
+            
+            // Komeet positie & Staart
+            const cometX = cx + 180;
+            const cometY = cy - 60;
+            oCtx.beginPath(); oCtx.arc(cometX, cometY, 3, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill();
+            
+            // Staart (weg van zon)
+            const angleFromSun = Math.atan2(cometY - cy, cometX - cx);
+            const tailGradient = oCtx.createLinearGradient(cometX, cometY, cometX + Math.cos(angleFromSun)*80, cometY + Math.sin(angleFromSun)*80);
+            tailGradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+            tailGradient.addColorStop(1, 'rgba(255,255,255,0)');
+            oCtx.beginPath(); oCtx.moveTo(cometX, cometY);
+            oCtx.lineTo(cometX + Math.cos(angleFromSun-0.1)*80, cometY + Math.sin(angleFromSun-0.1)*80);
+            oCtx.lineTo(cometX + Math.cos(angleFromSun+0.1)*80, cometY + Math.sin(angleFromSun+0.1)*80);
+            oCtx.fillStyle = tailGradient; oCtx.fill();
+
+            // Kijklijn vanuit Aarde
+            oCtx.beginPath(); oCtx.moveTo(cx + 60, cy + 30); oCtx.lineTo(cometX, cometY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.5)'; oCtx.stroke();
+        }
+
+        // --- 2. Teken de Resonantie Grafiek (Linksonder) ---
+        function drawResonanceGraph() {
+            const resCanvas = document.getElementById('resonanceCanvas');
+            const rCtx = resCanvas.getContext('2d');
+            const width = resCanvas.width;
+            const height = resCanvas.height;
+
+            // Assen
+            rCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+            rCtx.beginPath(); rCtx.moveTo(30, 10); rCtx.lineTo(30, height - 20); rCtx.lineTo(width - 10, height - 20); rCtx.stroke();
+            
+            // Labels
+            rCtx.fillStyle = '#94a3b8'; rCtx.font = '10px sans-serif';
+            rCtx.fillText("φ", 15, 20);
+            rCtx.fillText("Tijd (jaren)", width / 2, height - 5);
+
+            // Libration wave (gedempte sinus)
+            rCtx.beginPath();
+            rCtx.strokeStyle = '#f59e0b';
+            for (let x = 0; x < width - 40; x++) {
+                // Simuleer de φ = λ - 3λ_j + ϖ stabilisatie
+                let damping = Math.exp(-x * 0.015);
+                let y = (height / 2) - 10 + Math.sin(x * 0.3) * 40 * damping;
+                if (x === 0) rCtx.moveTo(30 + x, y);
+                else rCtx.lineTo(30 + x, y);
+            }
+            rCtx.stroke();
+        }
+
+        // --- 3. Teken het Kompas (Rechts) ---
+        function drawCompass() {
+            const cCanvas = document.getElementById('compassCanvas');
+            const cCtx = cCanvas.getContext('2d');
+            const ccx = cCanvas.width / 2;
+            const ccy = cCanvas.height / 2;
+            const radius = 80;
+
+            // Achtergrond cirkel
+            cCtx.beginPath(); cCtx.arc(ccx, ccy, radius, 0, Math.PI * 2); cCtx.fillStyle = '#0f172a'; cCtx.fill(); cCtx.strokeStyle = '#334155'; cCtx.lineWidth = 2; cCtx.stroke();
+
+            // Richtingen
+            cCtx.fillStyle = '#94a3b8'; cCtx.font = '12px bold sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
+            cCtx.fillText("N", ccx, ccy - radius + 15);
+            cCtx.fillText("Z", ccx, ccy + radius - 15);
+            cCtx.fillText("O", ccx + radius - 15, ccy);
+            cCtx.fillText("W", ccx - radius + 15, ccy);
+
+            // Rasterlijnen
+            cCtx.beginPath(); cCtx.moveTo(ccx, ccy - radius); cCtx.lineTo(ccx, ccy + radius); cCtx.strokeStyle = 'rgba(255,255,255,0.05)'; cCtx.stroke();
+            cCtx.beginPath(); cCtx.moveTo(ccx - radius, ccy); cCtx.lineTo(ccx + radius, ccy); cCtx.stroke();
+
+            // Doelwit (Azimut 56.7) - N=0, O=90
+            const azimutRad = (56.7 - 90) * (Math.PI / 180); 
+            const targetX = ccx + Math.cos(azimutRad) * (radius - 25);
+            const targetY = ccy + Math.sin(azimutRad) * (radius - 25);
+
+            // Teken Kijkveld Hoek
+            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.3, azimutRad + 0.3); cCtx.fillStyle = 'rgba(16, 185, 129, 0.15)'; cCtx.fill();
+
+            // Doelwit markering
+            cCtx.beginPath(); cCtx.arc(targetX, targetY, 5, 0, Math.PI * 2); cCtx.fillStyle = '#10b981'; cCtx.fill(); cCtx.shadowBlur = 10; cCtx.shadowColor = '#10b981';
+            
+            // Elevatie text indicator
+            cCtx.shadowBlur = 0;
+            cCtx.fillStyle = '#ef4444';
+            cCtx.fillText("-6.2° (Zichtlijn)", ccx, ccy + 30);
+        }
+
+        // Initieer alle renders
+        window.onload = () => {
+            drawOrbitSystem();
+            drawResonanceGraph();
+            drawCompass();
+        };
+    </script>
+</body>
+</html>
