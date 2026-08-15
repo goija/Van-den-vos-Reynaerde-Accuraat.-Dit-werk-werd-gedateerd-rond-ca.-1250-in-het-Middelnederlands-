@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastodon Data Feed - queen_fennec</title>
+    <style>
+        :root {
+            --bg-color: #080c16;
+            --panel-bg: #121929;
+            --text-main: #e2e8f0;
+            --text-muted: #64748b;
+            --accent-gold: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --border-color: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; width: 100%; max-width: 800px; }
+        .header h1 { color: var(--accent-blue); margin: 0 0 5px 0; font-size: 1.8rem; }
+        .header p { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
+
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-title {
+            color: var(--accent-gold);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], input[type="password"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #0d1320;
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        .btn {
+            background-color: var(--accent-blue); 
+            color: white; 
+            border: none;
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            font-weight: bold;
+            cursor: pointer; 
+            transition: background 0.3s;
+        }
+        .btn:hover { background-color: #2563eb; }
+        
+        /* Status Styling */
+        .status-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .status-card {
+            background-color: #0d1320;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 10px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px;
+            background-color: var(--border-color);
+            object-fit: cover;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .display-name { font-weight: bold; color: var(--text-main); }
+        .acct { font-size: 0.85rem; color: var(--text-muted); }
+
+        .status-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+
+        .status-content a { color: var(--accent-blue); text-decoration: none; }
+        .status-content a:hover { text-decoration: underline; }
+
+        .status-footer {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            color: var(--accent-red);
+            background-color: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-red);
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            color: var(--accent-gold);
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🐘 Mastodon Telemetrie Feed</h1>
+        <p>Live search query: <code>q=queen_fennec&type=statuses</code> op mastodon.frl</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- Configuratie Paneel -->
+        <div class="panel">
+            <h2 class="panel-title">⚙️ API Configuratie</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0;">
+                Sommige Mastodon instances vereisen authenticatie voor de zoek-API. Als de zoekopdracht mislukt met een 401 of 403 fout, vul dan hieronder een geldige API Access Token in.
+            </p>
+            <div class="input-group">
+                <input type="password" id="apiToken" placeholder="Optioneel: Bearer Token (indien vereist door de server)">
+                <button id="fetchBtn" class="btn">DATA OPHALEN</button>
+            </div>
+        </div>
+
+        <!-- Data Feed Paneel -->
+        <div class="panel">
+            <h2 class="panel-title">📡 Zoekresultaten (Statussen)</h2>
+            <div id="feedContainer" class="status-feed">
+                <!-- Resultaten komen hier -->
+                <div style="color: var(--text-muted); text-align: center; padding: 20px;">
+                    Klik op 'Data Ophalen' om de stream te starten.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://mastodon.frl/api/v2/search?q=queen_fennec&type=statuses';
+        const feedContainer = document.getElementById('feedContainer');
+        const fetchBtn = document.getElementById('fetchBtn');
+
+        fetchBtn.addEventListener('click', fetchMastodonData);
+
+        async function fetchMastodonData() {
+            const token = document.getElementById('apiToken').value.trim();
+            feedContainer.innerHTML = '<div class="loading">Systeem zoekt naar verbinding...</div>';
+            
+            const headers = {
+                'Accept': 'application/json'
+            };
+
+            // Voeg autorisatie toe indien de gebruiker een token heeft ingevuld
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error(`Toegang geweigerd (HTTP ${response.status}). Deze instance vereist waarschijnlijk een API Token voor zoekopdrachten.`);
+                    }
+                    throw new Error(`Server fout (HTTP ${response.status}).`);
+                }
+
+                const data = await response.json();
+                
+                // De V2 search API retourneert een object met arrays: accounts, statuses, hashtags
+                const statuses = data.statuses;
+
+                renderStatuses(statuses);
+
+            } catch (error) {
+                console.error(error);
+                feedContainer.innerHTML = `<div class="error-message"><strong>Foutmelding:</strong> ${error.message}</div>`;
+            }
+        }
+
+        function renderStatuses(statuses) {
+            feedContainer.innerHTML = ''; // Leeg de container
+
+            if (!statuses || statuses.length === 0) {
+                feedContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Geen statussen gevonden voor deze zoekopdracht.</div>';
+                return;
+            }
+
+            statuses.forEach(status => {
+                // Formatteer de datum
+                const dateObj = new Date(status.created_at);
+                const dateStr = dateObj.toLocaleDateString('nl-NL', { 
+                    year: 'numeric', month: 'long', day: 'numeric', 
+                    hour: '2-digit', minute: '2-digit', second:'2-digit' 
+                });
+
+                // Creëer de HTML-structuur voor een status
+                const card = document.createElement('div');
+                card.className = 'status-card';
+                card.innerHTML = `
+                    <div class="status-header">
+                        <img class="avatar" src="${status.account.avatar}" alt="Avatar van ${status.account.display_name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMWUyOTNiIi8+PC9zdmc+'">
+                        <div class="user-info">
+                            <span class="display-name">${status.account.display_name || status.account.username}</span>
+                            <span class="acct">@${status.account.acct}</span>
+                        </div>
+                    </div>
+                    <div class="status-content">
+                        ${status.content}
+                    </div>
+                    <div class="status-footer">
+                        <span>💬 ${status.replies_count} | 🔁 ${status.reblogs_count} | ⭐ ${status.favourites_count}</span>
+                        <a href="${status.url}" target="_blank">${dateStr}</a>
+                    </div>
+                `;
+                
+                feedContainer.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
