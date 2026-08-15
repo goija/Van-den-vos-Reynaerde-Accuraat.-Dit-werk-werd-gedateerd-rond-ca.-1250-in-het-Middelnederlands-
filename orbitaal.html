@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komeet 220P/McNaught Orbitale Simulator</title>
+    <style>
+        body {
+            background-color: #0c0c0f;
+            color: #f4f1de;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            background-color: #161622;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border: 1px solid #2a2a3d;
+        }
+        h1 {
+            color: #e9c46a;
+            text-align: center;
+            margin-top: 0;
+            font-size: 26px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(233, 196, 106, 0.2);
+        }
+        .subtitle {
+            text-align: center;
+            color: #8888aa;
+            font-size: 14px;
+            margin-top: -10px;
+            margin-bottom: 25px;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+        .controls {
+            background-color: #10101a;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #222230;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        h3 {
+            color: #e9c46a;
+            font-size: 15px;
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #2a2a3d;
+            padding-bottom: 5px;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #aaaaaa;
+        }
+        .slider-val {
+            color: #e9c46a;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            background: #2a2a3d;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #e9c46a;
+            cursor: pointer;
+        }
+        .stats-box {
+            background-color: #0c0c0f;
+            border: 1px solid #1f1f2e;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            color: #cccccc;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            background-color: #e9c46a;
+            color: #121216;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        button:hover {
+            background-color: #f4a261;
+            transform: translateY(-1px);
+        }
+        button.secondary {
+            background-color: #2a2a3d;
+            color: #ffffff;
+            border: 1px solid #3d3d5c;
+        }
+        button.secondary:hover {
+            background-color: #3d3d5c;
+        }
+        .canvas-container {
+            position: relative;
+            background-color: #08080c;
+            border-radius: 8px;
+            border: 1px solid #222230;
+            overflow: hidden;
+            height: 520px;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+        .legend {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: rgba(16, 16, 26, 0.85);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #2a2a3d;
+            font-size: 11px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .instrucitons {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #666688;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>☄️ Komeet 220P/McNaught Orbitale Simulator</h1>
+    <div class="subtitle">Realtime Kepler-baansimulatie en de Wetten van de Hemelmechanica (Epoche 2026)</div>
+
+    <div class="layout">
+        <!-- Controls Panel -->
+        <div class="controls">
+            <h3>⚙️ BAANPARAMETERS (220P)</h3>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Excentriciteit (e)</span>
+                    <span class="slider-val" id="val-e">0.50</span>
+                </div>
+                <input type="range" id="param-e" min="0.0" max="0.95" step="0.01" value="0.50">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Halve Lange As (a in AE)</span>
+                    <span class="slider-val" id="val-a">3.12</span>
+                </div>
+                <input type="range" id="param-a" min="1.0" max="6.0" step="0.05" value="3.12">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Inclinatie (i in graden)</span>
+                    <span class="slider-val" id="val-i">8.12°</span>
+                </div>
+                <input type="range" id="param-i" min="0" max="90" step="0.1" value="8.12">
+            </div>
+
+            <h3>⏱️ TIJD & SIMULATIE</h3>
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Animatiesnelheid</span>
+                    <span class="slider-val" id="val-speed">1.0x</span>
+                </div>
+                <input type="range" id="param-speed" min="0.1" max="5.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="btn-group">
+                <button id="btn-play">Pause</button>
+                <button id="btn-reset" class="secondary">Reset Baan</button>
+            </div>
+
+            <h3>📊 REALTIME INSTRUMENTEN</h3>
+            <div class="stats-box">
+                <div>Afstand tot Zon: <span id="stat-r" style="color:#e9c46a">0.00 AE</span></div>
+                <div>Snelheid: <span id="stat-v" style="color:#e63946">0.00 km/s</span></div>
+                <div>Omlooptijd (T): <span id="stat-period" style="color:#1f77b4">0.00 jaar</span></div>
+                <div>Fase: <span id="stat-anomaly" style="color:#f4f1de">Aphelium</span></div>
+            </div>
+        </div>
+
+        <!-- 3D Canvas Panel -->
+        <div class="canvas-container">
+            <div class="legend">
+                <div class="legend-item"><div class="dot" style="background:#ffaa00; box-shadow: 0 0 5px #ffaa00;"></div>Zon (Focus)</div>
+                <div class="legend-item"><div class="dot" style="background:#55bbff"></div>Aarde (1.0 AE)</div>
+                <div class="legend-item"><div class="dot" style="background:#2ca02c"></div>Komeet 220P/McNaught</div>
+                <div class="legend-item"><div class="dot" style="background:#ff5555"></div>Mars (1.52 AE)</div>
+            </div>
+            <canvas id="orbit-canvas"></canvas>
+        </div>
+    </div>
+    <div class="instrucitons">💡 Sleep met de muis over het zwarte venster om de camerahoek in 3D te roteren en de baaninclinatie te bewonderen!</div>
+</div>
+
+<script>
+    const canvas = document.getElementById('orbit-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 3D Camerahoek instellingen
+    let yaw = -0.4;  // Rotatie rond de Z-as
+    let pitch = 1.0; // Rotatie rond de X-as (kanteling van bovenaf)
+    let zoom = 55;   // pixels per AE
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    // Fysische Baanvariabelen
+    let e = 0.50036;       // Excentriciteit van 220P
+    let a = 3.12;          // Halve lange as in AE
+    let inclination = 8.12 * Math.PI / 180; // Inclinatie in radialen
+    let omega = 180.57 * Math.PI / 180;     // Argument van perihelium (hoek van de ellips)
+    let t = 0.0;           // Simulatietijd (Mean Anomaly M)
+    let speed = 0.01;      // Stapgrootte per frame
+    let isPlaying = true;
+
+    // Planetaire banen (cirkelvormig ter referentie)
+    const earthRadius = 1.0;
+    const marsRadius = 1.52;
+
+    // Resize handler
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Muis-interactie voor 3D-rotatie
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    canvas.addEventListener('mousemove', (evt) => {
+        if (!isDragging) return;
+        const deltaX = evt.clientX - previousMousePosition.x;
+        const deltaY = evt.clientY - previousMousePosition.y;
+
+        yaw += deltaX * 0.007;
+        pitch = Math.max(0.1, Math.min(Math.PI / 2, pitch + deltaY * 0.007));
+
+        previousMousePosition = { x: evt.clientX, y: evt.clientY };
+    });
+
+    // Event listeners voor inputs
+    document.getElementById('param-e').addEventListener('input', (evt) => {
+        e = parseFloat(evt.target.value);
+        document.getElementById('val-e').textContent = e.toFixed(2);
+    });
+    document.getElementById('param-a').addEventListener('input', (evt) => {
+        a = parseFloat(evt.target.value);
+        document.getElementById('val-a').textContent = a.toFixed(2) + " AE";
+    });
+    document.getElementById('param-i').addEventListener('input', (evt) => {
+        let deg = parseFloat(evt.target.value);
+        inclination = deg * Math.PI / 180;
+        document.getElementById('val-i').textContent = deg.toFixed(1) + "°";
+    });
+    document.getElementById('param-speed').addEventListener('input', (evt) => {
+        let mult = parseFloat(evt.target.value);
+        speed = 0.01 * mult;
+        document.getElementById('val-speed').textContent = mult.toFixed(1) + "x";
+    });
+
+    document.getElementById('btn-play').addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        document.getElementById('btn-play').textContent = isPlaying ? "Pause" : "Play";
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        e = 0.50036;
+        a = 3.12;
+        inclination = 8.12 * Math.PI / 180;
+        document.getElementById('param-e').value = e;
+        document.getElementById('param-a').value = a;
+        document.getElementById('param-i').value = 8.12;
+        document.getElementById('val-e').textContent = "0.50";
+        document.getElementById('val-a').textContent = "3.12 AE";
+        document.getElementById('val-i').textContent = "8.12°";
+        t = 0.0;
+    });
+
+    // Keplervergelijking oplosser (Newton-Raphson)
+    function solveKepler(M) {
+        let E = M; // Initiële gok
+        for (let i = 0; i < 10; i++) {
+            let delta = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+            E = E - delta;
+            if (Math.abs(delta) < 1e-6) break;
+        }
+        return E;
+    }
+
+    // Projectie van 3D coördinaten naar 2D Canvas scherm
+    function project(x, y, z) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        // 1. Rotatie rond Z-as (yaw)
+        let x1 = x * Math.cos(yaw) - y * Math.sin(yaw);
+        let y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
+        let z1 = z;
+
+        // 2. Rotatie rond X-as (pitch)
+        let x2 = x1;
+        let y2 = y1 * Math.cos(pitch) - z1 * Math.sin(pitch);
+        let z2 = y1 * Math.sin(pitch) + z1 * Math.cos(pitch);
+
+        // Orthografische schaalprojectie
+        return {
+            x: cx + x2 * zoom,
+            y: cy - y2 * zoom,
+            z: z2
+        };
+    }
+
+    // Hoofdlus van de animatie
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Teken sterren op de achtergrond
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        for (let i = 0; i < 30; i++) {
+            let x_star = (Math.sin(i * 452) * 0.5 + 0.5) * canvas.width;
+            let y_star = (Math.cos(i * 782) * 0.5 + 0.5) * canvas.height;
+            ctx.fillRect(x_star, y_star, 1.5, 1.5);
+        }
+
+        // Teken de ecliptica (het platte referentievlak op z=0)
+        ctx.strokeStyle = "rgba(40, 40, 60, 0.4)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let r_grid = 1; r_grid <= 4; r_grid++) {
+            for (let i = 0; i <= 64; i++) {
+                let theta = (i / 64) * Math.PI * 2;
+                let pt = project(r_grid * Math.cos(theta), r_grid * Math.sin(theta), 0);
+                if (i === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            }
+        }
+        ctx.stroke();
+
+        // Teken de Zon (Focus van de ellipsen)
+        let sunPt = project(0, 0, 0);
+        let grad = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 14);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.2, '#ffcc00');
+        grad.addColorStop(1, 'rgba(255, 170, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sunPt.x, sunPt.y, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Teken referentiebaan van de Aarde (e=0, i=0)
+        ctx.strokeStyle = "rgba(85, 187, 255, 0.3)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i <= 100; i++) {
+            let theta = (i / 100) * Math.PI * 2;
+            let pt = project(earthRadius * Math.cos(theta), earthRadius * Math.sin(theta), 0);
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+
+        // Teken referentiebaan van Mars
+        ctx.strokeStyle = "rgba(255, 85, 85, 0.2)";
+        ctx.beginPath();
+        for (let i = 0; i <= 100; i++) {
+            let theta = (i / 100) * Math.PI * 2;
+            let pt = project(marsRadius * Math.cos(theta), marsRadius * Math.sin(theta), 0);
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+
+        // TEKEN DE KOMEETBAAN (GEKROMD IN 3D)
+        ctx.strokeStyle = "#e9c46a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let samples = 200;
+        for (let i = 0; i <= samples; i++) {
+            let temp_M = (i / samples) * Math.PI * 2;
+            let temp_E = solveKepler(temp_M);
+            
+            // Coördinaten in het baanvlak van de komeet
+            let x_plane = a * (Math.cos(temp_E) - e);
+            let y_plane = a * Math.sqrt(1 - e * e) * Math.sin(temp_E);
+            
+            // Pas de inclinatie (i) en argument van perihelium (omega) toe
+            let x_space = x_plane * Math.cos(omega) - y_plane * Math.sin(omega);
+            let y_space = x_plane * Math.sin(omega) + y_plane * Math.cos(omega);
+            
+            // Roteer rond de x-as met inclinatie i
+            let x_final = x_space;
+            let y_final = y_space * Math.cos(inclination);
+            let z_final = y_space * Math.sin(inclination);
+
+            let pt = project(x_final, y_final, z_final);
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+
+        // BEREKEN ACTUELE KOMEETPOSITIE
+        if (isPlaying) {
+            // Kepler's Tweede Wet: pas de baansnelheid aan op basis van de afstand r!
+            // Snelheidsstap dT is omgekeerd evenredig met r^2
+            let current_E = solveKepler(t);
+            let current_r = a * (1 - e * Math.cos(current_E));
+            t += speed * (1.0 / (current_r * current_r)); // Numerieke tijdsintegratie
+            if (t > Math.PI * 2) t -= Math.PI * 2;
+        }
+
+        let E = solveKepler(t);
+        let x_plane = a * (Math.cos(E) - e);
+        let y_plane = a * Math.sqrt(1 - e * e) * Math.sin(E);
+
+        let x_space = x_plane * Math.cos(omega) - y_plane * Math.sin(omega);
+        let y_space = x_plane * Math.sin(omega) + y_plane * Math.cos(omega);
+
+        let x_final = x_space;
+        let y_final = y_space * Math.cos(inclination);
+        let z_final = y_space * Math.sin(inclination);
+
+        let cometPt = project(x_final, y_final, z_final);
+
+        // Teken de Komeetstaart (wijst altijd direct van de zon af)
+        let r_val = Math.sqrt(x_final*x_final + y_final*y_final + z_final*z_final);
+        let tailLength = Math.max(0, (5.0 - r_val) * 15); // Langer als de komeet dichter bij de zon komt!
+
+        if (tailLength > 0) {
+            // Vectoren van zon naar komeet
+            let dx = x_final / r_val;
+            let dy = y_final / r_val;
+            let dz = z_final / r_val;
+
+            // Teken de staart-vervaging
+            let tailEndPt = project(x_final + dx * (tailLength/zoom), y_final + dy * (tailLength/zoom), z_final + dz * (tailLength/zoom));
+            let tailGrad = ctx.createLinearGradient(cometPt.x, cometPt.y, tailEndPt.x, tailEndPt.y);
+            tailGrad.addColorStop(0, 'rgba(44, 160, 44, 0.8)'); // Helder groen aan de kop (C2 gassen)
+            tailGrad.addColorStop(0.3, 'rgba(100, 200, 255, 0.3)'); // Blauwe ionenstaart
+            tailGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.strokeStyle = tailGrad;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(cometPt.x, cometPt.y);
+            ctx.lineTo(tailEndPt.x, tailEndPt.y);
+            ctx.stroke();
+        }
+
+        // Teken de Komeetkop (Groene Coma-gloed)
+        ctx.fillStyle = "#2ca02c";
+        ctx.shadowColor = "#2ca02c";
+        ctx.shadowBlur = r_val < 2.0 ? 12 : 3;
+        ctx.beginPath();
+        ctx.arc(cometPt.x, cometPt.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset schaduw
+
+        // UPDATE DE INSTRUMENTEN (Realtime stats)
+        // Baansnelheid via de Vis-Viva vergelijking: v = sqrt(GM * (2/r - 1/a))
+        // Met GM = 4pi^2 (in AE/jaar). Omgezet naar km/s: v = 29.78 * sqrt(2/r - 1/a)
+        let v_val = 29.78 * Math.sqrt((2.0 / r_val) - (1.0 / a));
+        let period = Math.pow(a, 1.5); // Kepler's Derde Wet: T^2 = a^3 -> T = a^1.5
+
+        document.getElementById('stat-r').textContent = r_val.toFixed(3) + " AE";
+        document.getElementById('stat-v').textContent = v_val.toFixed(2) + " km/s";
+        document.getElementById('stat-period').textContent = period.toFixed(2) + " jaar";
+        
+        let anomalyText = "In Orbit";
+        if (r_val < a * (1 - e) + 0.1) anomalyText = "⚡ Perihelium (Dichtstbij)";
+        else if (r_val > a * (1 + e) - 0.1) anomalyText = "❄️ Aphelium (Verst weg)";
+        document.getElementById('stat-anomaly').textContent = anomalyText;
+
+        requestAnimationFrame(draw);
+    }
+
+    draw();
+</script>
+
+</body>
+</html>
