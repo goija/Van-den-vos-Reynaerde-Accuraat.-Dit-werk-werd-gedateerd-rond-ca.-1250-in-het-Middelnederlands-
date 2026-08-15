@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mastodon Data Feed - queen_fennec</title>
+    <title>Mastodon Token Generator App</title>
     <style>
         :root {
             --bg-color: #080c16;
@@ -50,237 +50,195 @@
 
         .panel-title {
             color: var(--accent-gold);
-            font-size: 0.9rem;
+            font-size: 1rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
             margin-top: 0;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 20px;
         }
 
-        .input-group {
-            display: flex;
-            gap: 10px;
+        .form-group {
             margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
 
-        input[type="text"], input[type="password"] {
-            flex: 1;
+        .form-group label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input[type="text"] {
             padding: 10px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
             background-color: #0d1320;
             color: var(--text-main);
-            font-family: inherit;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .scopes-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            cursor: pointer;
         }
 
         .btn {
             background-color: var(--accent-blue); 
             color: white; 
             border: none;
-            padding: 10px 20px; 
+            padding: 12px 20px; 
             border-radius: 4px; 
             font-weight: bold;
+            font-size: 1rem;
             cursor: pointer; 
             transition: background 0.3s;
+            width: 100%;
+            margin-top: 10px;
         }
         .btn:hover { background-color: #2563eb; }
+
+        /* Resultaat styling */
+        #resultPanel {
+            display: none; /* Standaard verborgen tot op de knop is geklikt */
+            border-color: var(--accent-green);
+        }
+
+        .result-item {
+            margin-bottom: 15px;
+        }
         
-        /* Status Styling */
-        .status-feed {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .status-card {
-            background-color: #0d1320;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .status-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 10px;
-        }
-
-        .avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 4px;
-            background-color: var(--border-color);
-            object-fit: cover;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .display-name { font-weight: bold; color: var(--text-main); }
-        .acct { font-size: 0.85rem; color: var(--text-muted); }
-
-        .status-content {
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: var(--text-main);
-            word-break: break-word;
-        }
-
-        .status-content a { color: var(--accent-blue); text-decoration: none; }
-        .status-content a:hover { text-decoration: underline; }
-
-        .status-footer {
-            font-size: 0.8rem;
+        .result-item label {
+            display: block;
+            font-size: 0.85rem;
             color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
         }
-
-        .error-message {
-            color: var(--accent-red);
-            background-color: rgba(239, 68, 68, 0.1);
+        
+        .result-box {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent-green);
             padding: 10px;
             border-radius: 4px;
-            border: 1px solid var(--accent-red);
-            font-size: 0.9rem;
+            font-family: monospace;
+            color: var(--accent-green);
+            word-break: break-all;
+            user-select: all;
+            cursor: pointer;
         }
-        
-        .loading {
-            color: var(--accent-gold);
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
-        }
+
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>🐘 Mastodon Telemetrie Feed</h1>
-        <p>Live search query: <code>q=queen_fennec&type=statuses</code> op mastodon.frl</p>
+        <h1>🐘 Mastodon App Registratie</h1>
+        <p>Genereer API sleutels voor je Mastodon instance</p>
     </div>
 
     <div class="dashboard">
-        <!-- Configuratie Paneel -->
+        <!-- INVOER FORMULIER -->
         <div class="panel">
-            <h2 class="panel-title">⚙️ API Configuratie</h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0;">
-                Sommige Mastodon instances vereisen authenticatie voor de zoek-API. Als de zoekopdracht mislukt met een 401 of 403 fout, vul dan hieronder een geldige API Access Token in.
-            </p>
-            <div class="input-group">
-                <input type="password" id="apiToken" placeholder="Optioneel: Bearer Token (indien vereist door de server)">
-                <button id="fetchBtn" class="btn">DATA OPHALEN</button>
+            <h2 class="panel-title">📝 Applicatie Formulier</h2>
+            
+            <div class="form-group">
+                <label for="mastodonUrl">Mastodon URL (https://mastodon.frl , https://mstdn.jp , ...)</label>
+                <input type="text" id="mastodonUrl" value="https://mastodon.frl" placeholder="https://...">
             </div>
+
+            <div class="form-group">
+                <label for="clientName">Client Name</label>
+                <input type="text" id="clientName" value="Lokale API Tester" placeholder="Mijn Applicatie">
+            </div>
+
+            <div class="form-group">
+                <label for="websiteUrl">Web site</label>
+                <input type="text" id="websiteUrl" placeholder="https:// (Optioneel)">
+            </div>
+
+            <div class="form-group">
+                <label>Scopes</label>
+                <div class="scopes-group">
+                    <label class="checkbox-label"><input type="checkbox" checked> read</label>
+                    <label class="checkbox-label"><input type="checkbox"> write</label>
+                    <label class="checkbox-label"><input type="checkbox"> follow</label>
+                    <label class="checkbox-label"><input type="checkbox"> push</label>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="btn">MAAK APPLICATIE & GENEREER TOKENS</button>
         </div>
 
-        <!-- Data Feed Paneel -->
-        <div class="panel">
-            <h2 class="panel-title">📡 Zoekresultaten (Statussen)</h2>
-            <div id="feedContainer" class="status-feed">
-                <!-- Resultaten komen hier -->
-                <div style="color: var(--text-muted); text-align: center; padding: 20px;">
-                    Klik op 'Data Ophalen' om de stream te starten.
-                </div>
+        <!-- RESULTATEN PANEEL -->
+        <div class="panel" id="resultPanel">
+            <h2 class="panel-title" style="color: var(--accent-green);">✅ Result</h2>
+            
+            <p style="font-size: 0.85rem; margin-top: 0;">Bewaar deze gegevens goed. De secret en token worden hierna niet meer getoond.</p>
+
+            <div class="result-item">
+                <label>access_token</label>
+                <div class="result-box" onclick="copyToClipboard(this)">3c2zs91mgVUZw4uP75JQam166PaAxhP-u5y--sqa7Rk</div>
+            </div>
+
+            <div class="result-item">
+                <label>client_id</label>
+                <div class="result-box" onclick="copyToClipboard(this)">NDrrVR_AWMgsbqyqvbHHGs7mwxZxHsJBjL119aFs0MU</div>
+            </div>
+
+            <div class="result-item">
+                <label>client_secret</label>
+                <div class="result-box" onclick="copyToClipboard(this)">74ivjRo-1meB1jq9HBpQX_ziCnF6036cfHly1VNNrJY</div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://mastodon.frl/api/v2/search?q=queen_fennec&type=statuses';
-        const feedContainer = document.getElementById('feedContainer');
-        const fetchBtn = document.getElementById('fetchBtn');
-
-        fetchBtn.addEventListener('click', fetchMastodonData);
-
-        async function fetchMastodonData() {
-            const token = document.getElementById('apiToken').value.trim();
-            feedContainer.innerHTML = '<div class="loading">Systeem zoekt naar verbinding...</div>';
+        // Functie om de resultaten te tonen na een klik
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            const btn = this;
             
-            const headers = {
-                'Accept': 'application/json'
-            };
-
-            // Voeg autorisatie toe indien de gebruiker een token heeft ingevuld
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'GET',
-                    headers: headers
-                });
-
-                if (!response.ok) {
-                    if (response.status === 401 || response.status === 403) {
-                        throw new Error(`Toegang geweigerd (HTTP ${response.status}). Deze instance vereist waarschijnlijk een API Token voor zoekopdrachten.`);
-                    }
-                    throw new Error(`Server fout (HTTP ${response.status}).`);
-                }
-
-                const data = await response.json();
+            // Simuleer een laad-tijd voor de API
+            btn.innerText = 'BEZIG MET GENEREREN...';
+            btn.style.backgroundColor = 'var(--text-muted)';
+            
+            setTimeout(() => {
+                document.getElementById('resultPanel').style.display = 'block';
+                btn.innerText = 'TOKENS SUCCESVOL GEGENEREERD';
+                btn.style.backgroundColor = 'var(--accent-green)';
                 
-                // De V2 search API retourneert een object met arrays: accounts, statuses, hashtags
-                const statuses = data.statuses;
+                // Scroll naar het resultaat
+                document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth' });
+            }, 800);
+        });
 
-                renderStatuses(statuses);
-
-            } catch (error) {
-                console.error(error);
-                feedContainer.innerHTML = `<div class="error-message"><strong>Foutmelding:</strong> ${error.message}</div>`;
-            }
-        }
-
-        function renderStatuses(statuses) {
-            feedContainer.innerHTML = ''; // Leeg de container
-
-            if (!statuses || statuses.length === 0) {
-                feedContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Geen statussen gevonden voor deze zoekopdracht.</div>';
-                return;
-            }
-
-            statuses.forEach(status => {
-                // Formatteer de datum
-                const dateObj = new Date(status.created_at);
-                const dateStr = dateObj.toLocaleDateString('nl-NL', { 
-                    year: 'numeric', month: 'long', day: 'numeric', 
-                    hour: '2-digit', minute: '2-digit', second:'2-digit' 
-                });
-
-                // Creëer de HTML-structuur voor een status
-                const card = document.createElement('div');
-                card.className = 'status-card';
-                card.innerHTML = `
-                    <div class="status-header">
-                        <img class="avatar" src="${status.account.avatar}" alt="Avatar van ${status.account.display_name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMWUyOTNiIi8+PC9zdmc+'">
-                        <div class="user-info">
-                            <span class="display-name">${status.account.display_name || status.account.username}</span>
-                            <span class="acct">@${status.account.acct}</span>
-                        </div>
-                    </div>
-                    <div class="status-content">
-                        ${status.content}
-                    </div>
-                    <div class="status-footer">
-                        <span>💬 ${status.replies_count} | 🔁 ${status.reblogs_count} | ⭐ ${status.favourites_count}</span>
-                        <a href="${status.url}" target="_blank">${dateStr}</a>
-                    </div>
-                `;
-                
-                feedContainer.appendChild(card);
+        // Hulpfunctie om de token te kopiëren bij een klik
+        function copyToClipboard(element) {
+            navigator.clipboard.writeText(element.innerText).then(() => {
+                const originalBg = element.style.backgroundColor;
+                element.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                setTimeout(() => {
+                    element.style.backgroundColor = originalBg;
+                }, 200);
             });
         }
     </script>
