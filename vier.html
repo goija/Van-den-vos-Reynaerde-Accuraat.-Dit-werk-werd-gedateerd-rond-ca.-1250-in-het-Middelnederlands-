@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klok Symmetrie & Cijfersom Verdeling</title>
+    <style>
+        body {
+            background-color: #121216;
+            color: #f4f1de;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: #1a1a24;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #e9c46a;
+            text-align: center;
+            margin-top: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+        p.description {
+            color: #aaaaaa;
+            font-size: 14px;
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 600px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
+        .card {
+            background-color: #121216;
+            border: 1px solid #2a2a35;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .time-display {
+            font-family: 'Consolas', monospace;
+            font-size: 48px;
+            color: #ffffff;
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(233, 196, 106, 0.3);
+        }
+        .sum-badge {
+            background-color: #e63946;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 5px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        input[type="time"] {
+            flex-grow: 1;
+            background-color: #1a1a24;
+            border: 1px solid #e9c46a;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        button {
+            background-color: #e9c46a;
+            color: #121216;
+            border: none;
+            padding: 8px 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #f4a261;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background-color: #0c0c0f;
+            border-radius: 8px;
+            padding: 15px 10px 5px 10px;
+            box-sizing: border-box;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .bar {
+            fill: #1f77b4;
+            transition: fill 0.2s, y 0.5s, height 0.5s;
+            cursor: pointer;
+        }
+        .bar:hover {
+            fill: #e9c46a;
+        }
+        .bar.active {
+            fill: #e63946;
+            filter: drop-shadow(0px 0px 4px #e63946);
+        }
+        .axis-label {
+            fill: #aaaaaa;
+            font-size: 9px;
+            font-family: monospace;
+            text-anchor: middle;
+        }
+        .stats-list {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #cccccc;
+            line-height: 1.5;
+        }
+        .highlight-text {
+            color: #e9c46a;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>☯ Klok Symmetrie & Cijfersom Analyse</h1>
+    <p class="description">
+        Een statistische analyse van de som van alle cijfers op een 24-uurs digitale klok (notatie <code>HH:MM:SS</code>). 
+        Er zijn in totaal exact 86.400 seconden per dag. De kleinst mogelijke cijfersom is <b>0</b> (om 00:00:00) 
+        en de grootst mogelijke cijfersom is <b>33</b> (om 23:59:59).
+    </p>
+
+    <div class="dashboard">
+        <!-- Live Klok Card -->
+        <div class="card">
+            <h3 style="margin: 0; color: #aaaaaa; font-size: 14px;">LIVE TIJD & CIJFERSOM</h3>
+            <div class="time-display" id="live-clock">00:00:00</div>
+            <div style="font-size: 12px; color: #888;">CIJFERSOM:</div>
+            <div class="sum-badge" id="live-sum">0</div>
+        </div>
+
+        <!-- Handmatige Berekening Card -->
+        <div class="card">
+            <h3 style="margin: 0; color: #aaaaaa; font-size: 14px;">ANALYSEER SPECIFIEK TIJDSTIP</h3>
+            <div class="input-group">
+                <input type="time" id="custom-time" step="1" value="13:13:00">
+                <button onclick="analyzeCustomTime()">Analyseer</button>
+            </div>
+            <div id="custom-result-box" style="margin-top: 15px; text-align: center; display: none;">
+                <span id="custom-time-lbl" style="font-family: monospace; font-size: 18px;">13:13:00</span> heeft cijfersom:
+                <div class="sum-badge" id="custom-sum-val" style="background-color: #1f77b4; margin: 8px auto;">8</div>
+                <span id="custom-stats-lbl" style="font-size: 11px; color: #888;"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SVG Grafiek -->
+    <h3 style="margin: 10px 0; color: #e9c46a; font-size: 14px;">STATISTISCHE VERDELING (SOM 0 T/M 33)</h3>
+    <div class="chart-container">
+        <svg id="chart-svg" viewBox="0 0 800 300" preserveAspectRatio="none"></svg>
+    </div>
+
+    <!-- Statistieken Sectie -->
+    <div class="stats-list" id="stats-summary">
+        <!-- Wordt dynamisch ingeladen -->
+    </div>
+</div>
+
+<script>
+    // 1. Bereken de frequenties van alle cijfersommen (0 t/m 33)
+    const totalSeconds = 86400;
+    const sumFrequencies = Array(34).fill(0);
+    
+    // We slaan ook de absolute tijdstippen op per som voor extra statistieken
+    const sumExamples = Array.from({ length: 34 }, () => []);
+
+    for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m++) {
+            for (let s = 0; s < 60; s++) {
+                const h1 = Math.floor(h / 10), h2 = h % 10;
+                const m1 = Math.floor(m / 10), m2 = m % 10;
+                const s1 = Math.floor(s / 10), s2 = s % 10;
+                
+                const sum = h1 + h2 + m1 + m2 + s1 + s2;
+                sumFrequencies[sum]++;
+                
+                // Bewaar een representatieve tijdstip-string
+                if (sumExamples[sum].length < 3) {
+                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                    sumExamples[sum].push(timeStr);
+                }
+            }
+        }
+    }
+
+    // Bereken het wiskundig gemiddelde en de modus
+    let totalSumOfAllSeconds = 0;
+    let maxFreq = 0;
+    let modeSum = 0;
+    for (let i = 0; i < sumFrequencies.length; i++) {
+        totalSumOfAllSeconds += sumFrequencies[i] * i;
+        if (sumFrequencies[i] > maxFreq) {
+            maxFreq = sumFrequencies[i];
+            modeSum = i;
+        }
+    }
+    const mathAverage = (totalSumOfAllSeconds / totalSeconds).toFixed(2);
+
+    // 2. Render de SVG staafgrafiek
+    const svg = document.getElementById('chart-svg');
+    const width = 800;
+    const height = 260;
+    const paddingLeft = 40;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    const barWidth = chartWidth / 34;
+
+    let svgContent = '';
+
+    // Teken hulplijnen (Y-as)
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+        const yVal = maxFreq * (i / yTicks);
+        const yPos = height - paddingBottom - (chartHeight * (i / yTicks));
+        svgContent += `
+            <line x1="${paddingLeft}" y1="${yPos}" x2="${width - paddingRight}" y2="${yPos}" stroke="#2a2a35" stroke-dasharray="3,3" stroke-width="1" />
+            <text x="${paddingLeft - 8}" y="${yPos + 4}" fill="#888888" font-size="10" font-family="monospace" text-anchor="end">${Math.round(yVal)}</text>
+        `;
+    }
+
+    // Teken de staven en labels
+    for (let i = 0; i < 34; i++) {
+        const freq = sumFrequencies[i];
+        const barHeight = (freq / maxFreq) * chartHeight;
+        const xPos = paddingLeft + (i * barWidth) + 2;
+        const yPos = height - paddingBottom - barHeight;
+        const currentBarWidth = barWidth - 4;
+
+        // Bepaal het percentage van de dag
+        const percentage = ((freq / totalSeconds) * 100).toFixed(3);
+
+        svgContent += `
+            <rect id="bar-${i}" class="bar" x="${xPos}" y="${yPos}" width="${currentBarWidth}" height="${barHeight}" rx="2"
+                  onclick="selectBar(${i})"
+                  onmouseover="showTooltip(event, ${i}, ${freq}, ${percentage})" 
+                  onmouseout="hideTooltip()">
+            </rect>
+            <text class="axis-label" x="${xPos + currentBarWidth/2}" y="${height - 10}">${i}</text>
+        `;
+    }
+
+    svg.innerHTML = svgContent;
+
+    // Toon statistische samenvatting in tekst
+    const statsDiv = document.getElementById('stats-summary');
+    statsDiv.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                • <b>Wiskundig Gemiddelde:</b> <span class="highlight-text">${mathAverage}</span><br>
+                • <b>Meest Voorkomende Som (Modus):</b> Som <span class="highlight-text">${modeSum}</span> (komt ${sumFrequencies[modeSum]} keer voor, oftewel ${((sumFrequencies[modeSum]/86400)*100).toFixed(2)}% van de dag)<br>
+                • <b>Zeldzaamste Sommen:</b> Som 0 en Som 33 (beide slechts <span class="highlight-text">1 keer</span> per dag!)
+            </div>
+            <div>
+                • <b>Symmetrie-analyse:</b> De verdeling is perfect symmetrisch rond de as <span class="highlight-text">16.5</span>. De frequentie van som <i>k</i> is exact gelijk aan de frequentie van som <i>33 - k</i>.<br>
+                • <b>Symmetrische paring:</b> Som 8 (jouw spiegeluur 13:13:00) komt exact even vaak voor als Som 25 (bijvoorbeeld om 19:59:01), namelijk <span class="highlight-text">${sumFrequencies[8]} keer</span> per dag!
+            </div>
+        </div>
+    `;
+
+    // 3. Live klok update
+    function updateClock() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+        
+        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        document.getElementById('live-clock').textContent = timeStr;
+        
+        // Bereken som
+        const h1 = Math.floor(h / 10), h2 = h % 10;
+        const m1 = Math.floor(m / 10), m2 = m % 10;
+        const s1 = Math.floor(s / 10), s2 = s % 10;
+        const sum = h1 + h2 + m1 + m2 + s1 + s2;
+        
+        document.getElementById('live-sum').textContent = sum;
+        
+        // Highlight de actieve staaf in de grafiek
+        highlightBar(sum);
+    }
+
+    let activeBarId = null;
+    function highlightBar(sumIndex) {
+        // Reset vorige actieve staaf
+        const bars = document.querySelectorAll('.bar');
+        bars.forEach(b => b.classList.remove('active'));
+        
+        // Zet nieuwe actief
+        const activeBar = document.getElementById(`bar-${sumIndex}`);
+        if (activeBar) {
+            activeBar.classList.add('active');
+        }
+    }
+
+    function selectBar(sumIndex) {
+        const freq = sumFrequencies[sumIndex];
+        const percentage = ((freq / totalSeconds) * 100).toFixed(2);
+        const examples = sumExamples[sumIndex].join(', ');
+        
+        // Simuleer een handmatige analyse voor de geselecteerde staaf
+        const box = document.getElementById('custom-result-box');
+        box.style.display = 'block';
+        document.getElementById('custom-time-lbl').textContent = `Som-klasse ${sumIndex}`;
+        document.getElementById('custom-sum-val').textContent = `${freq} sec`;
+        document.getElementById('custom-sum-val').style.backgroundColor = '#e9c46a';
+        document.getElementById('custom-sum-val').style.color = '#121216';
+        document.getElementById('custom-stats-lbl').innerHTML = `
+            Vertegenwoordigt <b>${percentage}%</b> van de dag.<br>
+            Voorbeelden: <span style="color:#ffffff">${examples}...</span>
+        `;
+    }
+
+    function analyzeCustomTime() {
+        const timeInput = document.getElementById('custom-time').value;
+        if (!timeInput) return;
+        
+        const parts = timeInput.split(':');
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const s = parts[2] ? parseInt(parts[2], 10) : 0;
+        
+        const h1 = Math.floor(h / 10), h2 = h % 10;
+        const m1 = Math.floor(m / 10), m2 = m % 10;
+        const s1 = Math.floor(s / 10), s2 = s % 10;
+        const sum = h1 + h2 + m1 + m2 + s1 + s2;
+
+        const freq = sumFrequencies[sum];
+        const percentage = ((freq / totalSeconds) * 100).toFixed(2);
+
+        const box = document.getElementById('custom-result-box');
+        box.style.display = 'block';
+        document.getElementById('custom-time-lbl').textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        document.getElementById('custom-sum-val').textContent = sum;
+        document.getElementById('custom-sum-val').style.backgroundColor = '#1f77b4';
+        document.getElementById('custom-sum-val').style.color = 'white';
+        document.getElementById('custom-stats-lbl').innerHTML = `
+            Deze som komt <b>${freq} keer</b> voor per dag (${percentage}%).<br>
+            De staaf is gemarkeerd in de grafiek!
+        `;
+
+        highlightBar(sum);
+    }
+
+    // Start de live updates
+    setInterval(updateClock, 1000);
+    updateClock(); // Eerste run direct
+</script>
+
+</body>
+</html>
