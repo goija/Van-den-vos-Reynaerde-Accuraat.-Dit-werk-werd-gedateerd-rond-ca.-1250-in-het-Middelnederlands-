@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10P/Tempel Baanresonantie Simulator (2026)</title>
+    <title>10P/Tempel Baanresonantie Simulator (NASA API)</title>
     <style>
         :root {
-            --bg-color: #0b101e;
-            --panel-bg: #141c2f;
+            --bg-color: #080c16;
+            --panel-bg: #121929;
             --text-main: #e2e8f0;
-            --text-muted: #94a3b8;
+            --text-muted: #64748b;
             --accent-gold: #f59e0b;
             --accent-blue: #3b82f6;
             --accent-green: #10b981;
@@ -28,28 +28,15 @@
             align-items: center;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            color: var(--accent-gold);
-            margin: 0 0 5px 0;
-            font-size: 1.8rem;
-        }
-
-        .header p {
-            color: var(--text-muted);
-            margin: 0;
-            font-size: 0.9rem;
-        }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: var(--accent-gold); margin: 0 0 5px 0; font-size: 1.8rem; }
+        .header p { color: var(--text-muted); margin: 0; font-size: 0.85rem; }
 
         .dashboard {
             display: grid;
-            grid-template-columns: 300px 800px 300px;
+            grid-template-columns: 280px 780px 280px;
             gap: 20px;
-            max-width: 1440px;
+            max-width: 1400px;
         }
 
         .panel {
@@ -57,12 +44,14 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
         }
 
         .panel-title {
             color: var(--accent-gold);
-            font-size: 1rem;
+            font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 1px solid var(--border-color);
@@ -71,92 +60,64 @@
             margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .control-group {
-            margin-bottom: 15px;
-        }
-
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .control-group input[type="range"] {
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); }
+        .value-display { color: var(--text-main); font-weight: bold; }
+        
+        input[type="range"] {
             width: 100%;
+            accent-color: var(--text-muted);
+            opacity: 0.7;
         }
 
-        .value-display {
-            float: right;
-            color: var(--text-main);
-            font-weight: bold;
-        }
-
-        .btn {
-            background-color: var(--accent-gold);
-            color: #000;
+        .btn-nasa {
+            background-color: var(--accent-gold); 
+            color: #000; 
             border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+            padding: 12px; 
+            border-radius: 4px; 
             font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
+            font-size: 0.85rem;
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 10px; 
             transition: background 0.3s;
+            text-transform: uppercase;
         }
-
-        .btn:hover { background-color: #d97706; }
-
+        .btn-nasa:hover { background-color: #d97706; }
+        .btn-nasa:active { transform: scale(0.98); }
+        
         .canvas-container {
-            position: relative;
-            width: 100%;
-            height: 500px;
-            background: radial-gradient(circle at center, #1a2436 0%, #0b101e 100%);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
+            position: relative; width: 100%; height: 500px;
+            background: #0d1320;
+            border: 1px solid var(--border-color); 
+            border-radius: 4px; 
             overflow: hidden;
         }
-
-        #orbitCanvas, #resonanceCanvas, #compassCanvas {
-            display: block;
+        
+        .data-list { list-style: none; padding: 0; margin: 0; font-size: 0.85rem; }
+        .data-list li { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .data-value { color: var(--text-main); font-family: monospace; font-size: 0.95rem; text-align: right;}
+        .data-value.gold { color: var(--accent-gold); }
+        .data-value.red { color: var(--accent-red); }
+        
+        .compass-container { display: flex; flex-direction: column; align-items: center; margin-top: 10px; }
+        
+        .legend {
+            display: flex; justify-content: space-between; padding: 15px 20px 5px; 
+            color: var(--text-muted); font-size: 0.75rem;
         }
-
-        .status-indicator {
-            color: var(--accent-green);
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .data-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .data-list li {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .data-value {
-            color: var(--accent-gold);
-            font-family: monospace;
-            font-size: 1rem;
-        }
-
-        .compass-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-        }
+        .legend span { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot.sun { background: #facc15; }
+        .dot.earth { background: #3b82f6; }
+        .dot.comet { background: #ef4444; }
+        .dot.jupiter { background: #f97316; }
+        
+        #apiStatus { font-size: 0.75rem; text-align: center; margin-top: 10px; min-height: 15px; color: var(--accent-green); }
 
     </style>
 </head>
@@ -168,190 +129,292 @@
     </div>
 
     <div class="dashboard">
-        <!-- Linker Kolom: Parameters & Resonantie -->
+        <!-- LINKER KOLOM -->
         <div class="column">
             <div class="panel">
-                <h2 class="panel-title">⚙️ Baanparameters (10P)</h2>
+                <h2 class="panel-title">⚙️ BAANPARAMETERS (10P)</h2>
+                
                 <div class="control-group">
-                    <label>Excentriciteit: <span class="value-display">0.53</span></label>
-                    <input type="range" min="0" max="100" value="53" disabled>
+                    <label>Excentriciteit: <span class="value-display" id="eccDisplay">0.530</span></label>
+                    <input type="range" id="eccSlider" min="0" max="1000" value="530" disabled>
                 </div>
+                
                 <div class="control-group">
-                    <label>Halve Lange As (a in AE): <span class="value-display">3.12</span></label>
-                    <input type="range" min="100" max="500" value="312" disabled>
+                    <label>Halve Lange As (a in AE): <span class="value-display" id="smaDisplay">3.120</span></label>
+                    <input type="range" id="smaSlider" min="1000" max="5000" value="3120" disabled>
                 </div>
-                <button class="btn">BAANGEGEVENS BIJGEWERKT (2026)</button>
+                
+                <button id="nasaBtn" class="btn-nasa">BAANGEGEVENS BIJGEWERKT<br>(NASA JPL API)</button>
+                <div id="apiStatus"></div>
             </div>
 
             <div class="panel" style="margin-top: 20px;">
-                <h2 class="panel-title">📊 Resonantie-Analyse</h2>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0;">Type: 1:3 met Jupiter</p>
-                <canvas id="resonanceCanvas" width="260" height="150" style="background: #0b101e; border: 1px solid #1e293b;"></canvas>
-                <p style="margin-bottom: 0; font-size: 0.9rem;">Resonantie Status: <span class="status-indicator">STABIEL</span></p>
+                <h2 class="panel-title">📊 RESONANTIE-ANALYSE</h2>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 10px 0;">Type: 1:3 met Jupiter</p>
+                <canvas id="resonanceCanvas" width="238" height="100" style="background: #0d1320; border: 1px solid #1e293b; border-radius: 4px;"></canvas>
+                <p style="margin: 10px 0 0 0; font-size: 0.85rem;">Resonantie Status: <span style="color: var(--accent-green); font-weight: bold;">STABIEL</span></p>
             </div>
         </div>
 
-        <!-- Middelste Kolom: Hoofd Simulatie -->
-        <div class="panel" style="padding: 10px;">
+        <!-- MIDDEN KOLOM -->
+        <div class="panel" style="padding: 15px;">
             <div class="canvas-container">
-                <canvas id="orbitCanvas" width="780" height="500"></canvas>
+                <canvas id="orbitCanvas" width="750" height="500"></canvas>
             </div>
-            <div style="display: flex; justify-content: space-between; padding: 10px 20px; color: var(--text-muted); font-size: 0.85rem;">
-                <span>🟡 Zon (0 AE)</span>
-                <span>🔵 Aarde (1.0 AE)</span>
-                <span>🔴 Komeet 10P/Tempel</span>
-                <span>🟠 Jupiter (5.2 AE)</span>
+            <div class="legend">
+                <span><i class="dot sun"></i> Zon (0 AE)</span>
+                <span><i class="dot earth"></i> Aarde (1.0 AE)</span>
+                <span><i class="dot comet"></i> Komeet 10P/Tempel</span>
+                <span><i class="dot jupiter"></i> Jupiter (5.2 AE)</span>
             </div>
         </div>
 
-        <!-- Rechter Kolom: Kijkrichting & Data -->
+        <!-- RECHTER KOLOM -->
         <div class="column">
             <div class="panel">
-                <h2 class="panel-title">🔭 Kijkrichting (Live)</h2>
+                <h2 class="panel-title">🔭 KIJKRICHTING (LIVE)</h2>
                 <ul class="data-list">
-                    <li><span>Azimut:</span> <span class="data-value">56.7° (ONO)</span></li>
-                    <li><span>Elevatie:</span> <span class="data-value" style="color: var(--accent-red);">-6.2°</span></li>
-                    <li><span>Status:</span> <span class="data-value" style="color: var(--text-muted); font-size: 0.8rem;">Onder horizon</span></li>
+                    <li><span>Azimut:</span> <span class="data-value" id="azDisplay">56.7° (ONO)</span></li>
+                    <li><span>Elevatie:</span> <span class="data-value red" id="elDisplay">-6.2°</span></li>
+                    <li><span>Status:</span> <span class="data-value" style="font-size: 0.75rem; color: var(--text-muted);">Onder horizon</span></li>
                 </ul>
-                
                 <div class="compass-container">
                     <canvas id="compassCanvas" width="200" height="200"></canvas>
                 </div>
             </div>
-
+            
             <div class="panel" style="margin-top: 20px;">
-                <h2 class="panel-title">⏱️ Tijd & Simulatie</h2>
-                <ul class="data-list">
-                    <li><span>Afstand tot Aarde:</span> <span class="data-value">1.424 AE</span></li>
-                    <li><span>Omloopsnelheid:</span> <span class="data-value">10.92 km/s</span></li>
+                 <h2 class="panel-title">⏱️ TIJD & SIMULATIE</h2>
+                 <ul class="data-list">
+                    <li><span>Afstand tot Aarde:</span> <span class="data-value gold" id="distDisplay">1.424 AE</span></li>
+                    <li><span>Omloopsnelheid:</span> <span class="data-value gold" id="velDisplay">10.92 km/s</span></li>
                 </ul>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. Teken de Baansimulatie (Midden) ---
+        // GLOBALE VARIABELEN & BASISWAARDEN
+        let currentEcc = 0.53;
+        let currentSma = 3.12;
+        
+        let earthAngle = 4.2; 
+        let jupiterAngle = 1.2; 
+        let cometAngle = 0.5;
+
+        // UI Elementen
+        const eccDisplay = document.getElementById('eccDisplay');
+        const smaDisplay = document.getElementById('smaDisplay');
+        const eccSlider = document.getElementById('eccSlider');
+        const smaSlider = document.getElementById('smaSlider');
+        const apiStatus = document.getElementById('apiStatus');
+
+        // ==========================================
+        // NASA JPL API INTEGRATIE
+        // ==========================================
+        document.getElementById('nasaBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('nasaBtn');
+            btn.innerText = "VERBINDEN MET JPL HORIZONS...";
+            btn.style.backgroundColor = "var(--text-muted)";
+            apiStatus.innerText = "";
+            apiStatus.style.color = "var(--accent-gold)";
+            
+            try {
+                // NASA Small-Body Database API endpoint voor 10P/Tempel
+                const response = await fetch('https://ssd-api.jpl.nasa.gov/sbdb.api?sstr=10P');
+                const data = await response.json();
+                
+                if (data && data.orbit && data.orbit.elements) {
+                    // Extract Excentriciteit (e) en Halve Lange As (a) uit de NASA payload
+                    const eccData = data.orbit.elements.find(el => el.name === 'e');
+                    const smaData = data.orbit.elements.find(el => el.name === 'a');
+                    
+                    if(eccData && smaData) {
+                        // Pas globale simulatie parameters aan
+                        currentEcc = parseFloat(eccData.value);
+                        currentSma = parseFloat(smaData.value);
+                        
+                        // Update UI Sliders & Tekst
+                        eccDisplay.innerText = currentEcc.toFixed(4);
+                        smaDisplay.innerText = currentSma.toFixed(4);
+                        
+                        // Sliders aanpassen (vermenigvuldigd voor range)
+                        eccSlider.value = currentEcc * 1000;
+                        smaSlider.value = currentSma * 1000;
+                        
+                        apiStatus.innerText = "✓ Data live gesynchroniseerd met NASA JPL SBDB";
+                        apiStatus.style.color = "var(--accent-green)";
+                    }
+                } else {
+                    throw new Error("Ongeldig dataformaat ontvangen.");
+                }
+            } catch (error) {
+                console.error("NASA API Error:", error);
+                apiStatus.innerText = "⚠️ Kon geen verbinding maken met NASA API.";
+                apiStatus.style.color = "var(--accent-red)";
+            } finally {
+                btn.innerHTML = "BAANGEGEVENS BIJGEWERKT<br>(NASA JPL API)";
+                btn.style.backgroundColor = "var(--accent-gold)";
+            }
+        });
+
+        // ==========================================
+        // SIMULATIE CANVAS (MIDDEN)
+        // ==========================================
         const orbitCanvas = document.getElementById('orbitCanvas');
         const oCtx = orbitCanvas.getContext('2d');
         const cx = orbitCanvas.width / 2;
         const cy = orbitCanvas.height / 2;
 
+        function animate() {
+            // Tijdsverloop
+            earthAngle -= 0.003; 
+            jupiterAngle -= (0.003 / 11.86); 
+            
+            // Kepler snelheid (sneller dichtbij de zon)
+            const cometDist = Math.sqrt(Math.pow(Math.cos(cometAngle)*210, 2) + Math.pow(Math.sin(cometAngle)*130, 2));
+            cometAngle -= (0.003 / 5.3) * (150 / cometDist);
+
+            drawOrbitSystem();
+            drawCompass();
+            drawResonanceGraph();
+
+            requestAnimationFrame(animate);
+        }
+
         function drawOrbitSystem() {
             oCtx.clearRect(0, 0, orbitCanvas.width, orbitCanvas.height);
             
-            // Grid
-            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            for(let i=0; i<orbitCanvas.width; i+=40) { oCtx.beginPath(); oCtx.moveTo(i,0); oCtx.lineTo(i, orbitCanvas.height); oCtx.stroke(); }
-            for(let i=0; i<orbitCanvas.height; i+=40) { oCtx.beginPath(); oCtx.moveTo(0,i); oCtx.lineTo(orbitCanvas.width, i); oCtx.stroke(); }
+            // Raster (zoals in screenshot)
+            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            oCtx.lineWidth = 1;
+            for(let i=0; i<orbitCanvas.width; i+=30) { oCtx.beginPath(); oCtx.moveTo(i,0); oCtx.lineTo(i, orbitCanvas.height); oCtx.stroke(); }
+            for(let i=0; i<orbitCanvas.height; i+=30) { oCtx.beginPath(); oCtx.moveTo(0,i); oCtx.lineTo(orbitCanvas.width, i); oCtx.stroke(); }
 
-            // Zon
-            oCtx.beginPath(); oCtx.arc(cx, cy, 10, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); oCtx.shadowBlur = 20; oCtx.shadowColor = '#facc15';
-
-            // Aarde Baan & Planeet
-            oCtx.shadowBlur = 0;
-            oCtx.beginPath(); oCtx.ellipse(cx, cy, 80, 50, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; oCtx.stroke();
-            oCtx.beginPath(); oCtx.arc(cx + 60, cy + 30, 4, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill();
-
-            // Jupiter Baan & Planeet
-            oCtx.beginPath(); oCtx.ellipse(cx, cy, 320, 200, 0, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke();
-            oCtx.beginPath(); oCtx.arc(cx - 200, cy - 150, 7, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill();
-
-            // 10P/Tempel Baan (Excentrisch)
-            oCtx.beginPath(); oCtx.ellipse(cx + 40, cy, 210, 130, Math.PI / 8, 0, Math.PI * 2); oCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; oCtx.setLineDash([5, 5]); oCtx.stroke(); oCtx.setLineDash([]);
+            // Banen tekenen
+            // Aarde
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 90, 60, 0, 0, Math.PI * 2); 
+            oCtx.strokeStyle = 'rgba(59, 130, 246, 0.4)'; oCtx.stroke(); 
+            // Jupiter
+            oCtx.beginPath(); oCtx.ellipse(cx, cy, 340, 220, 0, 0, Math.PI * 2); 
+            oCtx.strokeStyle = 'rgba(249, 115, 22, 0.2)'; oCtx.stroke(); 
             
-            // Komeet positie & Staart
-            const cometX = cx + 180;
-            const cometY = cy - 60;
-            oCtx.beginPath(); oCtx.arc(cometX, cometY, 3, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill();
+            // Komeetbaan (vorm afhankelijk van NASA parameters 'currentSma' en 'currentEcc')
+            // Basis schaal: 1 AE = 90 pixels
+            const a = currentSma * 90; 
+            const b = a * Math.sqrt(1 - Math.pow(currentEcc, 2)); // b = a * sqrt(1-e^2)
+            const c_focal = a * currentEcc; // afstand middelpunt tot focus (zon)
             
-            // Staart (weg van zon)
-            const angleFromSun = Math.atan2(cometY - cy, cometX - cx);
-            const tailGradient = oCtx.createLinearGradient(cometX, cometY, cometX + Math.cos(angleFromSun)*80, cometY + Math.sin(angleFromSun)*80);
-            tailGradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+            oCtx.beginPath(); 
+            // Ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle)
+            oCtx.ellipse(cx + c_focal, cy, a, b, Math.PI / 10, 0, Math.PI * 2); 
+            oCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; 
+            oCtx.setLineDash([4, 4]); oCtx.stroke(); oCtx.setLineDash([]); 
+
+            // Zon (focus)
+            oCtx.beginPath(); oCtx.arc(cx, cy, 7, 0, Math.PI * 2); oCtx.fillStyle = '#facc15'; oCtx.fill(); 
+
+            // Posities berekenen
+            let eX = cx + Math.cos(earthAngle) * 90; 
+            let eY = cy + Math.sin(earthAngle) * 60;
+            let jX = cx + Math.cos(jupiterAngle) * 340; 
+            let jY = cy + Math.sin(jupiterAngle) * 220;
+            
+            // Komeet positie op zijn elliptische baan
+            let rot = Math.PI / 10;
+            let unrotCX = Math.cos(cometAngle) * a;
+            let unrotCY = Math.sin(cometAngle) * b;
+            let cX = cx + c_focal + (unrotCX * Math.cos(rot) - unrotCY * Math.sin(rot));
+            let cY = cy + (unrotCX * Math.sin(rot) + unrotCY * Math.cos(rot));
+
+            // Teken lichamen
+            oCtx.beginPath(); oCtx.arc(eX, eY, 4, 0, Math.PI * 2); oCtx.fillStyle = '#3b82f6'; oCtx.fill(); 
+            oCtx.beginPath(); oCtx.arc(jX, jY, 6, 0, Math.PI * 2); oCtx.fillStyle = '#f97316'; oCtx.fill(); 
+            
+            // Komeet en staart
+            oCtx.beginPath(); oCtx.arc(cX, cY, 3, 0, Math.PI * 2); oCtx.fillStyle = '#ffffff'; oCtx.fill(); 
+            const angleFromSun = Math.atan2(cY - cy, cX - cx);
+            const tailGradient = oCtx.createLinearGradient(cX, cY, cX + Math.cos(angleFromSun)*60, cY + Math.sin(angleFromSun)*60);
+            tailGradient.addColorStop(0, 'rgba(255,255,255,0.7)');
             tailGradient.addColorStop(1, 'rgba(255,255,255,0)');
-            oCtx.beginPath(); oCtx.moveTo(cometX, cometY);
-            oCtx.lineTo(cometX + Math.cos(angleFromSun-0.1)*80, cometY + Math.sin(angleFromSun-0.1)*80);
-            oCtx.lineTo(cometX + Math.cos(angleFromSun+0.1)*80, cometY + Math.sin(angleFromSun+0.1)*80);
+            oCtx.beginPath(); oCtx.moveTo(cX, cY);
+            oCtx.lineTo(cX + Math.cos(angleFromSun-0.08)*60, cY + Math.sin(angleFromSun-0.08)*60);
+            oCtx.lineTo(cX + Math.cos(angleFromSun+0.08)*60, cY + Math.sin(angleFromSun+0.08)*60);
             oCtx.fillStyle = tailGradient; oCtx.fill();
 
-            // Kijklijn vanuit Aarde
-            oCtx.beginPath(); oCtx.moveTo(cx + 60, cy + 30); oCtx.lineTo(cometX, cometY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.5)'; oCtx.stroke();
+            // Zichtlijn Aarde -> Komeet (groen zoals in screenshot)
+            oCtx.beginPath(); oCtx.moveTo(eX, eY); oCtx.lineTo(cX, cY); oCtx.strokeStyle = 'rgba(16, 185, 129, 0.7)'; oCtx.stroke();
         }
 
-        // --- 2. Teken de Resonantie Grafiek (Linksonder) ---
-        function drawResonanceGraph() {
-            const resCanvas = document.getElementById('resonanceCanvas');
-            const rCtx = resCanvas.getContext('2d');
-            const width = resCanvas.width;
-            const height = resCanvas.height;
-
-            // Assen
-            rCtx.strokeStyle = 'rgba(255,255,255,0.2)';
-            rCtx.beginPath(); rCtx.moveTo(30, 10); rCtx.lineTo(30, height - 20); rCtx.lineTo(width - 10, height - 20); rCtx.stroke();
-            
-            // Labels
-            rCtx.fillStyle = '#94a3b8'; rCtx.font = '10px sans-serif';
-            rCtx.fillText("φ", 15, 20);
-            rCtx.fillText("Tijd (jaren)", width / 2, height - 5);
-
-            // Libration wave (gedempte sinus)
-            rCtx.beginPath();
-            rCtx.strokeStyle = '#f59e0b';
-            for (let x = 0; x < width - 40; x++) {
-                // Simuleer de φ = λ - 3λ_j + ϖ stabilisatie
-                let damping = Math.exp(-x * 0.015);
-                let y = (height / 2) - 10 + Math.sin(x * 0.3) * 40 * damping;
-                if (x === 0) rCtx.moveTo(30 + x, y);
-                else rCtx.lineTo(30 + x, y);
-            }
-            rCtx.stroke();
-        }
-
-        // --- 3. Teken het Kompas (Rechts) ---
+        // ==========================================
+        // KOMPAS EN GRAFIEK
+        // ==========================================
         function drawCompass() {
             const cCanvas = document.getElementById('compassCanvas');
             const cCtx = cCanvas.getContext('2d');
             const ccx = cCanvas.width / 2;
             const ccy = cCanvas.height / 2;
-            const radius = 80;
+            const radius = 70;
 
-            // Achtergrond cirkel
-            cCtx.beginPath(); cCtx.arc(ccx, ccy, radius, 0, Math.PI * 2); cCtx.fillStyle = '#0f172a'; cCtx.fill(); cCtx.strokeStyle = '#334155'; cCtx.lineWidth = 2; cCtx.stroke();
+            cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+            
+            // Achtergrond
+            cCtx.beginPath(); cCtx.arc(ccx, ccy, radius, 0, Math.PI * 2); 
+            cCtx.fillStyle = '#0a101d'; cCtx.fill(); 
+            cCtx.strokeStyle = '#1e293b'; cCtx.lineWidth = 1; cCtx.stroke();
+            
+            // Letters N, O, Z, W
+            cCtx.fillStyle = '#64748b'; cCtx.font = '10px sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
+            cCtx.fillText("N", ccx, ccy - radius - 10); cCtx.fillText("Z", ccx, ccy + radius + 10);
+            cCtx.fillText("O", ccx + radius + 10, ccy); cCtx.fillText("W", ccx - radius - 10, ccy);
 
-            // Richtingen
-            cCtx.fillStyle = '#94a3b8'; cCtx.font = '12px bold sans-serif'; cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
-            cCtx.fillText("N", ccx, ccy - radius + 15);
-            cCtx.fillText("Z", ccx, ccy + radius - 15);
-            cCtx.fillText("O", ccx + radius - 15, ccy);
-            cCtx.fillText("W", ccx - radius + 15, ccy);
-
-            // Rasterlijnen
+            // Raster
             cCtx.beginPath(); cCtx.moveTo(ccx, ccy - radius); cCtx.lineTo(ccx, ccy + radius); cCtx.strokeStyle = 'rgba(255,255,255,0.05)'; cCtx.stroke();
             cCtx.beginPath(); cCtx.moveTo(ccx - radius, ccy); cCtx.lineTo(ccx + radius, ccy); cCtx.stroke();
 
-            // Doelwit (Azimut 56.7) - N=0, O=90
+            // Doelwit (56.7 graden)
             const azimutRad = (56.7 - 90) * (Math.PI / 180); 
-            const targetX = ccx + Math.cos(azimutRad) * (radius - 25);
-            const targetY = ccy + Math.sin(azimutRad) * (radius - 25);
+            const targetX = ccx + Math.cos(azimutRad) * (radius - 20);
+            const targetY = ccy + Math.sin(azimutRad) * (radius - 20);
 
-            // Teken Kijkveld Hoek
-            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.3, azimutRad + 0.3); cCtx.fillStyle = 'rgba(16, 185, 129, 0.15)'; cCtx.fill();
-
-            // Doelwit markering
-            cCtx.beginPath(); cCtx.arc(targetX, targetY, 5, 0, Math.PI * 2); cCtx.fillStyle = '#10b981'; cCtx.fill(); cCtx.shadowBlur = 10; cCtx.shadowColor = '#10b981';
+            // Kijkveld Taartpunt (Groen in screenshot)
+            cCtx.beginPath(); cCtx.moveTo(ccx, ccy); cCtx.arc(ccx, ccy, radius, azimutRad - 0.2, azimutRad + 0.2); 
+            cCtx.fillStyle = 'rgba(16, 185, 129, 0.1)'; cCtx.fill();
             
-            // Elevatie text indicator
-            cCtx.shadowBlur = 0;
-            cCtx.fillStyle = '#ef4444';
+            // Punt
+            cCtx.beginPath(); cCtx.arc(targetX, targetY, 4, 0, Math.PI * 2); 
+            cCtx.fillStyle = '#10b981'; cCtx.fill();
+            
+            cCtx.fillStyle = '#ef4444'; cCtx.font = '11px sans-serif';
             cCtx.fillText("-6.2° (Zichtlijn)", ccx, ccy + 30);
         }
 
-        // Initieer alle renders
-        window.onload = () => {
-            drawOrbitSystem();
-            drawResonanceGraph();
-            drawCompass();
-        };
+        let graphOffset = 0;
+        function drawResonanceGraph() {
+            const resCanvas = document.getElementById('resonanceCanvas');
+            const rCtx = resCanvas.getContext('2d');
+            rCtx.clearRect(0, 0, resCanvas.width, resCanvas.height);
+            
+            // Assen
+            rCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+            rCtx.beginPath(); rCtx.moveTo(20, 10); rCtx.lineTo(20, 80); rCtx.lineTo(220, 80); rCtx.stroke();
+            rCtx.fillStyle = '#64748b'; rCtx.font = '10px sans-serif';
+            rCtx.fillText("φ", 10, 20); rCtx.fillText("Tijd (jaren)", 120, 95);
+
+            // Golf
+            rCtx.beginPath(); rCtx.strokeStyle = '#f59e0b';
+            graphOffset += 0.03;
+            
+            for (let x = 0; x < 200; x++) {
+                // Gedempte oscillatie
+                let y = 45 + Math.sin((x * 0.2) - graphOffset) * 30 * Math.exp(-x * 0.015);
+                if (x === 0) rCtx.moveTo(20 + x, y); else rCtx.lineTo(20 + x, y);
+            }
+            rCtx.stroke();
+        }
+
+        // Init
+        animate();
     </script>
 </body>
 </html>
