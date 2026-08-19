@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>4D Psychogeografie: Multi-Format Data I/O</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; background-color: #000; color: #ffffff; overflow: hidden; }
+        
+        #achtergrond-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: center center; }
+        #achtergrond-kaart { width: 100%; height: 100%; transition: transform 0.5s ease; }
+        
+        #hex-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: center center; }
+        #hex-kaart { width: 100%; height: 100%; background: transparent; transition: transform 0.5s ease; }
+
+        #mobiel-menu-knop {
+            position: absolute; top: 10px; right: 10px; z-index: 100000;
+            background: #e94560; color: white; border: none; padding: 10px 15px; font-size: 14px;
+            border-radius: 5px; font-family: monospace; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        #bedienings-paneel { position: absolute; top: 20px; left: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 6px; background: rgba(22, 33, 62, 0.95); padding: 12px; border-radius: 8px; border: 1px solid #0f3460; box-shadow: 0 4px 20px rgba(0,0,0,0.8); max-height: 90vh; overflow-y: auto; min-width: 250px; }
+        #paneel-header { background: #e94560; color: #fff; padding: 6px; text-align: center; font-family: monospace; font-weight: bold; font-size: 12px; cursor: grab; border-radius: 4px; margin-bottom: 6px; user-select: none; position: relative;}
+        #paneel-header:active { cursor: grabbing; }
+        .sluit-knop-mobiel { display: none; position: absolute; right: 8px; top: 5px; background: none; border: none; color: white; font-weight: bold; font-size: 14px; cursor: pointer; }
+
+        .paneel-titel { color: #fff; font-size: 11px; font-weight: bold; font-family: monospace; text-transform: uppercase; margin-bottom: 2px; border-bottom: 1px solid #e94560; padding-bottom: 3px; margin-top: 10px; }
+        select.kaart-keuze, input[type="color"], input[type="text"] { background-color: #0f172a; color: #ffd700; border: 1px solid #e94560; padding: 6px; font-family: monospace; font-weight: bold; font-size: 11px; border-radius: 4px; outline: none; width: 100%; box-sizing: border-box; }
+        .rotatie-knop { background-color: #e94560; color: white; border: none; padding: 6px; font-family: monospace; font-weight: bold; font-size: 11px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; flex: 1;}
+        .rotatie-knop:hover { background-color: #ff6b81; }
+        .rotatie-knop:active { transform: scale(0.96); }
+        .rotatie-knop.secundair { background-color: #0f3460; }
+        .rotatie-knop.secundair:hover { background-color: #1a4b8c; }
+        .actie-row { display: flex; gap: 4px; flex-wrap: wrap; }
+        
+        .roterende-groep { position: relative; transition: transform 0.2s linear; transform-origin: 14px 14px; filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.8)); cursor: grab; pointer-events: auto; }
+        .roterende-groep:active { cursor: grabbing; }
+        .basis-vorm { display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 11px; color: #fff; box-sizing: border-box; border: 2px solid #ffffff; text-shadow: 1px 1px 2px #000; }
+        .vorm-vierkant { width: 28px; height: 28px; }
+        .vorm-rondje { width: 28px; height: 28px; border-radius: 50%; }
+        .vorm-driehoek { width: 30px; height: 30px; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); align-items: flex-end; padding-bottom: 4px; border: none; }
+        .marker-label { position: absolute; top: 36px; left: 14px; transform: translateX(-50%); background-color: rgba(15, 52, 96, 0.95); color: #ffffff; border: 1px solid #e94560; font-family: monospace; font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
+        
+        .spinnen { animation: spinnen-animatie 4s linear infinite !important; }
+        @keyframes spinnen-animatie { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .leaflet-popup-content-wrapper { background-color: #ffffff; color: #333; }
+        .popup-content h3 { margin: 0 0 5px 0; color: #111; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 14px;}
+        .popup-content p { margin: 5px 0 0 0; font-size: 12px; line-height: 1.5; color: #333; }
+        input[type=range] { width: 100%; margin-top: 5px; }
+        
+        .mod21-data { font-family: monospace; background: #eee; padding: 2px 4px; border-radius: 3px; color: #e94560; font-weight:bold;}
+        .iteratie-data { font-family: monospace; background: #dbeafe; padding: 2px 4px; border-radius: 3px; color: #1e3a8a; font-weight:bold;}
+
+        @media (max-width: 768px) {
+            #mobiel-menu-knop { display: block; }
+            #bedienings-paneel { width: calc(100% - 40px) !important; left: 20px !important; top: 60px !important; max-height: calc(100vh - 80px); display: none; }
+            #bedienings-paneel.actief { display: flex; }
+            .sluit-knop-mobiel { display: block; }
+            .rotatie-knop { padding: 12px 6px; font-size: 12px; } 
+            input, select { padding: 10px; font-size: 12px; }
+            .paneel-titel { font-size: 12px; margin-top: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <button id="mobiel-menu-knop" onclick="toggleMobielMenu()">☰ MENU</button>
+
+    <div id="achtergrond-wrapper"><div id="achtergrond-kaart"></div></div>
+    <div id="hex-container"><div id="hex-kaart"></div></div>
+
+    <div id="bedienings-paneel">
+        <div id="paneel-header">
+            ✥ 4D Systeem Menu
+            <button class="sluit-knop-mobiel" onclick="toggleMobielMenu()">✕</button>
+        </div>
+
+        <div class="paneel-titel" style="margin-top:0;">Bitmap Overlays (JPG/PNG/SVG)</div>
+        <input type="file" id="overlay-upload" accept="image/*" onchange="uploadGlobaleOverlay(event)" style="display:none;">
+        <div class="actie-row">
+            <button class="rotatie-knop" onclick="document.getElementById('overlay-upload').click()">🖼️ Upload Overlay</button>
+            <button class="rotatie-knop secundair" onclick="wisGlobaleOverlay()">Wis Overlay</button>
+        </div>
+        <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="pasOverlayTransparantieAan(this.value)" title="Transparantie (Opacity)">
+
+        <div class="paneel-titel">Invoer Datapunten</div>
+        <input type="file" id="data-import" accept=".json,.geojson,.csv" onchange="importeerData(event)" style="display:none;">
+        <div class="actie-row">
+            <button class="rotatie-knop" style="background-color: #3b82f6;" onclick="document.getElementById('data-import').click()">📂 Import (JSON/GeoJSON/CSV)</button>
+        </div>
+
+        <div class="paneel-titel">Uitvoer Datapunten</div>
+        <div class="actie-row">
+            <button class="rotatie-knop" style="background-color: #10b981;" onclick="exporteerData('json')">💾 JSON</button>
+            <button class="rotatie-knop" style="background-color: #10b981;" onclick="exporteerData('geojson')">💾 GeoJSON</button>
+            <button class="rotatie-knop" style="background-color: #10b981;" onclick="exporteerData('csv')">💾 CSV</button>
+        </div>
+
+        <div class="paneel-titel">Achtergrond Kaart & Zoom</div>
+        <select id="achtergrond-kies-menu" class="kaart-keuze" onchange="wisselAchtergrond()" style="margin-bottom:4px;">
+            <option value="carto">Carto Dark Matter</option>
+            <option value="osm">OpenStreetMap</option>
+            <option value="esri">Esri Satelliet</option>
+            <option value="topo">OpenTopoMap</option>
+        </select>
+        <div class="actie-row">
+            <button class="rotatie-knop secundair" onclick="zoomAchtergrond('in')">🔍 Max In</button>
+            <button class="rotatie-knop secundair" onclick="zoomAchtergrond('uit')">🌍 Max Uit</button>
+        </div>
+
+        <div class="paneel-titel">Spiegelbeeld (Flip)</div>
+        <div class="actie-row">
+            <button class="rotatie-knop secundair" onclick="toggleSpiegelbeeld('x')">↔️ Horizontaal</button>
+            <button class="rotatie-knop secundair" onclick="toggleSpiegelbeeld('y')">↕️ Verticaal</button>
+        </div>
+
+        <div class="paneel-titel">Achtergrond Rotatie (Quat)</div>
+        <div class="actie-row">
+            <button class="rotatie-knop secundair" onclick="draaiAchtergrond(91)">91°</button>
+            <button class="rotatie-knop secundair" onclick="draaiAchtergrond(181)">181°</button>
+            <button class="rotatie-knop secundair" onclick="draaiAchtergrond(234)">234°</button>
+            <button class="rotatie-knop secundair" onclick="draaiAchtergrond(350)">350°</button>
+        </div>
+        <div class="actie-row" style="margin-top:4px;">
+            <button class="rotatie-knop secundair" onclick="draaiAchtergrond(360)">360°</button>
+            <button class="rotatie-knop secundair" onclick="draaiAchtergrond(365)">365°</button>
+            <button class="rotatie-knop secundair" style="background-color: #27ae60;" onclick="stapAchtergrond(15)">+15°</button>
+            <button class="rotatie-knop secundair" style="background-color: #dc2626;" onclick="draaiAchtergrond(0)">Reset</button>
+        </div>
+
+        <div class="paneel-titel">Hex Systeem Rotatie (Quat)</div>
+        <div class="actie-row">
+            <button class="rotatie-knop" onclick="draaiKaart(91)">91°</button>
+            <button class="rotatie-knop" onclick="draaiKaart(181)">181°</button>
+            <button class="rotatie-knop" onclick="draaiKaart(234)">234°</button>
+            <button class="rotatie-knop" onclick="draaiKaart(350)">350°</button>
+        </div>
+        <div class="actie-row" style="margin-top:4px;">
+            <button class="rotatie-knop" onclick="draaiKaart(360)">360°</button>
+            <button class="rotatie-knop" onclick="draaiKaart(365)">365°</button>
+            <button class="rotatie-knop" style="background-color: #27ae60;" onclick="stapKaart(15)">+15°</button>
+            <button class="rotatie-knop" style="background-color: #dc2626;" onclick="draaiKaart(0)">Reset</button>
+        </div>
+        
+        <div class="paneel-titel">Hex Systeem Zoom</div>
+        <div class="actie-row" style="margin-bottom:4px;">
+            <button class="rotatie-knop secundair" onclick="zoomHex('in')">🔍 Hex In (+)</button>
+            <button class="rotatie-knop secundair" onclick="zoomHex('uit')">🌍 Hex Uit (-)</button>
+        </div>
+
+        <div class="actie-row">
+            <button class="rotatie-knop" style="background-color: #8b5cf6;" onclick="toggleHexGridVisibility()">Toon/Verberg Hex-Grid</button>
+        </div>
+        
+        <div class="paneel-titel">Bouw Ankerpunt</div>
+        <input type="text" id="anker-naam" placeholder="Naam Ankerpunt..." style="margin-bottom: 4px;">
+        <input type="text" id="anker-zoek" placeholder="Plaatsnaam of Lat, Lng..." style="margin-bottom: 4px;">
+        
+        <div class="actie-row" style="margin-bottom: 4px;">
+            <button class="rotatie-knop secundair" onclick="zoekAnkerLocatie()">📍 Zoek Locatie & Zoom</button>
+        </div>
+        
+        <input type="color" id="marker-kleur" value="#e94560" title="Kies Maker Kleur">
+        <div class="actie-row" style="margin-top:4px;">
+            <button class="rotatie-knop" onclick="plaatsAnker('vierkant')">Vierkant</button>
+            <button class="rotatie-knop" onclick="plaatsAnker('driehoek')">Driehoek</button>
+            <button class="rotatie-knop" onclick="plaatsAnker('rondje')">Rondje</button>
+        </div>
+
+        <div class="paneel-titel">Vaste Systeem Data</div>
+        <div class="actie-row">
+            <button class="rotatie-knop" style="background-color: #4b5563;" onclick="laadProjectData('alteratie')">Laad Alteratie</button>
+            <button class="rotatie-knop" style="background-color: #4b5563;" onclick="laadProjectData('collatz')">Laad Collatz (-91)</button>
+        </div>
+
+        <div class="paneel-titel">Netwerk & Relaties</div>
+        <div class="actie-row">
+            <button class="rotatie-knop" style="background-color: #eab308;" onclick="verbindAnkers()">🔗 Teken Netwerk (Vectoren)</button>
+            <button class="rotatie-knop secundair" onclick="wisAlleAnkersEnLijnen()">Wis Systeem</button>
+        </div>
+
+        <div class="paneel-titel">Globale Makers Acties</div>
+        <div class="actie-row">
+            <button class="rotatie-knop secundair" onclick="draaiVormen(0)">Reset</button>
+            <button class="rotatie-knop secundair" onclick="toggleSpinnenVormen()">Spin</button>
+            <button class="rotatie-knop secundair" onclick="toggleTegenRotatie()">Rechtop</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Data presets
+        const psychoProjectData = {
+            "blauwdruk_pijl_van_de_tijd": [
+                { "fase": 0, "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Oude Kerk (Het Nulpunt)", "coords": [52.37528, 4.89954] },
+                { "fase": 1, "iteratie": -50, "congruentie_mod_21": 13, "locatie": "O.Z. Voorburgwal", "coords": [52.373, 4.897] },
+                { "fase": 2, "iteratie": -25, "congruentie_mod_21": 17, "locatie": "Zuiderkerk / Pollenberg", "coords": [52.370, 4.900] },
+                { "fase": 3, "iteratie": -74, "congruentie_mod_21": 10, "locatie": "St. Antoniesbreestraat", "coords": [52.371, 4.902] },
+                { "fase": 4, "iteratie": -37, "congruentie_mod_21": 5, "locatie": "De Plantage", "coords": [52.366, 4.912] },
+                { "fase": 5, "iteratie": -110, "congruentie_mod_21": 16, "locatie": "Oostenburg / Kattenburg", "coords": [52.370, 4.925] },
+                { "fase": 6, "iteratie": -55, "congruentie_mod_21": 8, "locatie": "Het IJ / De Rietlanden", "coords": [52.378, 4.935] },
+                { "fase": 7, "iteratie": -164, "congruentie_mod_21": 4, "locatie": "Diemerzeedijk", "coords": [52.360, 4.960] }
+            ],
+            "modulaire_iteratiematrix_18_fasen_attractor": [
+                { "fase": 0, "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Tafelberg (Origin)", "coords": [52.285, 5.160] },
+                { "fase": 8, "iteratie": -82, "congruentie_mod_21": 2, "locatie": "Oostelijke Handelskade", "coords": [52.376, 4.935] },
+                { "fase": 13, "iteratie": -91, "congruentie_mod_21": 14, "locatie": "Zaandijk (De Kritieke Knoop)", "coords": [52.474, 4.811] },
+                { "fase": 14, "iteratie": -272, "congruentie_mod_21": 1, "locatie": "Krommenie (Absolute Dieptepunt)", "coords": [52.500, 4.760] },
+                { "fase": 18, "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Kasteel Poelenburg", "coords": [52.490, 4.780] }
+            ]
+        };
+
+        function toggleMobielMenu() { document.getElementById('bedienings-paneel').classList.toggle('actief'); }
+        function toggleHexGridVisibility() {
+            const hexCont = document.getElementById('hex-container');
+            hexCont.style.display = (hexCont.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function getQuatMatrix(graden) {
+            let rad = graden * (Math.PI / 180);
+            let w = Math.cos(rad / 2), z = Math.sin(rad / 2);
+            return `matrix3d(${1 - 2*z*z}, ${2*w*z}, 0, 0, ${-2*w*z}, ${1 - 2*z*z}, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)`;
+        }
+
+        window.spiegelX = 1; window.spiegelY = 1;
+        function toggleSpiegelbeeld(as) {
+            if (as === 'x') window.spiegelX *= -1;
+            if (as === 'y') window.spiegelY *= -1;
+            let transformStr = `scale(${window.spiegelX}, ${window.spiegelY})`;
+            document.getElementById('achtergrond-kaart').style.transform = transformStr;
+            document.getElementById('hex-kaart').style.transform = transformStr;
+        }
+
+        const paneel = document.getElementById('bedienings-paneel');
+        const header = document.getElementById('paneel-header');
+        let isDraggingMenu = false, menuOffsetX, menuOffsetY;
+        
+        header.addEventListener('mousedown', (e) => { 
+            if(window.innerWidth <= 768) return; 
+            isDraggingMenu = true; let rect = paneel.getBoundingClientRect(); menuOffsetX = e.clientX - rect.left; menuOffsetY = e.clientY - rect.top; 
+        });
+        document.addEventListener('mousemove', (e) => { 
+            if (!isDraggingMenu) return; 
+            paneel.style.left = (e.clientX - menuOffsetX) + 'px'; paneel.style.top = (e.clientY - menuOffsetY) + 'px'; paneel.style.right = 'auto'; 
+        });
+        document.addEventListener('mouseup', () => { isDraggingMenu = false; });
+
+        var achtergrondMap = L.map('achtergrond-kaart', { zoomControl: false, minZoom: 1, maxZoom: 19 }).setView([52.375, 4.900], 10);
+        L.control.zoom({ position: 'bottomleft' }).addTo(achtergrondMap);
+        
+        var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+        var esriLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 });
+        var cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(achtergrondMap);
+        var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
+
+        function wisselAchtergrond() {
+            var keuze = document.getElementById("achtergrond-kies-menu").value;
+            achtergrondMap.eachLayer(layer => { if (layer instanceof L.TileLayer) achtergrondMap.removeLayer(layer); });
+            if (keuze === "osm") osmLayer.addTo(achtergrondMap);
+            if (keuze === "esri") esriLayer.addTo(achtergrondMap);
+            if (keuze === "carto") cartoLayer.addTo(achtergrondMap);
+            if (keuze === "topo") topoLayer.addTo(achtergrondMap);
+        }
+
+        function zoomAchtergrond(actie) {
+            if (actie === 'in') achtergrondMap.setZoom(achtergrondMap.getMaxZoom());
+            else if (actie === 'uit') achtergrondMap.setZoom(achtergrondMap.getMinZoom() || 1);
+        }
+
+        var globaleAfbeeldingOverlay = null;
+        function uploadGlobaleOverlay(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    if (globaleAfbeeldingOverlay) achtergrondMap.removeLayer(globaleAfbeeldingOverlay);
+                    globaleAfbeeldingOverlay = L.imageOverlay(e.target.result, achtergrondMap.getBounds(), { opacity: 0.5, interactive: false }).addTo(achtergrondMap);
+                }
+                reader.readAsDataURL(file);
+            }
+            event.target.value = ''; 
+        }
+        function pasOverlayTransparantieAan(val) { if(globaleAfbeeldingOverlay) globaleAfbeeldingOverlay.setOpacity(val); }
+        function wisGlobaleOverlay() { if(globaleAfbeeldingOverlay) { achtergrondMap.removeLayer(globaleAfbeeldingOverlay); globaleAfbeeldingOverlay = null; } }
+
+        /* --- DATA INVOER & UITVOER LOGICA --- */
+        
+        function verkrijgActieveDataObjecten() {
+            return window.actieveAnkers.map(m => {
+                let domNode = m.getElement().querySelector('.dyn-maker');
+                let basisVorm = domNode.querySelector('.basis-vorm');
+                let vormClass = Array.from(basisVorm.classList).find(c => c.startsWith('vorm-')).split('-')[1];
+                return {
+                    naam: domNode.querySelector('.marker-label').innerText,
+                    lat: m.getLatLng().lat,
+                    lng: m.getLatLng().lng,
+                    kleur: basisVorm.style.backgroundColor,
+                    vorm: vormClass,
+                    rotatie: domNode.getAttribute('data-local-rot') || 0
+                };
+            });
+        }
+
+        function exporteerData(formaat) {
+            if(window.actieveAnkers.length === 0) { alert("Geen actieve ankers om te exporteren!"); return; }
+            let dataArr = verkrijgActieveDataObjecten();
+            let exportStr = "";
+            let mimeType = "text/plain";
+            let bestandsnaam = "4D_Ankerpunten";
+
+            if (formaat === 'json') {
+                exportStr = JSON.stringify(dataArr, null, 2);
+                mimeType = "application/json";
+                bestandsnaam += ".json";
+            } 
+            else if (formaat === 'geojson') {
+                let geojson = { type: "FeatureCollection", features: [] };
+                dataArr.forEach(d => {
+                    geojson.features.push({
+                        type: "Feature",
+                        geometry: { type: "Point", coordinates: [d.lng, d.lat] },
+                        properties: { naam: d.naam, kleur: d.kleur, vorm: d.vorm, rotatie: d.rotatie }
+                    });
+                });
+                exportStr = JSON.stringify(geojson, null, 2);
+                mimeType = "application/geo+json";
+                bestandsnaam += ".geojson";
+            }
+            else if (formaat === 'csv') {
+                exportStr = "Naam,Latitude,Longitude,Vorm,Kleur,Rotatie\n";
+                dataArr.forEach(d => {
+                    let safeNaam = `"${d.naam.replace(/"/g, '""')}"`;
+                    let hexColor = d.kleur;
+                    if(d.kleur.startsWith('rgb')) {
+                        let rgb = d.kleur.match(/\d+/g);
+                        hexColor = "#" + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
+                    }
+                    exportStr += `${safeNaam},${d.lat},${d.lng},${d.vorm},${hexColor},${d.rotatie}\n`;
+                });
+                mimeType = "text/csv";
+                bestandsnaam += ".csv";
+            }
+
+            let blob = new Blob([exportStr], { type: mimeType });
+            let url = URL.createObjectURL(blob);
+            let dlNode = document.createElement('a');
+            dlNode.href = url;
+            dlNode.download = bestandsnaam;
+            dlNode.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importeerData(event) {
+            let file = event.target.files[0];
+            if(!file) return;
+            let reader = new FileReader();
+            
+            reader.onload = function(e) {
+                let content = e.target.result;
+                let ext = file.name.split('.').pop().toLowerCase();
+                
+                try {
+                    if (ext === 'json') {
+                        let data = JSON.parse(content);
+                        if(data.type === "FeatureCollection") {
+                            data.features.forEach(f => {
+                                let coords = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+                                let props = f.properties || {};
+                                plaatsAnker(props.vorm || 'rondje', coords, props.naam || 'Punt', null, null, props.kleur || '#e94560', props.rotatie || 0);
+                            });
+                        } else {
+                            data.forEach(item => {
+                                let coords = item.coords || [item.lat, item.lng];
+                                plaatsAnker(item.vorm, coords, item.naam, null, null, item.kleur, item.rotatie);
+                            });
+                        }
+                    } else if (ext === 'geojson') {
+                        let data = JSON.parse(content);
+                        if(data.type === "FeatureCollection") {
+                            data.features.forEach(f => {
+                                let coords = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+                                let props = f.properties || {};
+                                plaatsAnker(props.vorm || 'rondje', coords, props.naam || 'Punt', null, null, props.kleur || '#e94560', props.rotatie || 0);
+                            });
+                        }
+                    } else if (ext === 'csv') {
+                        let lines = content.split('\n');
+                        for(let i=1; i<lines.length; i++) {
+                            let line = lines[i].trim();
+                            if(!line) continue;
+                            let m = line.match(/(?:\"([^\"]*)\"|([^,]+)),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)/);
+                            if(m) {
+                                let naam = m[1] || m[2];
+                                let lat = parseFloat(m[3]);
+                                let lng = parseFloat(m[4]);
+                                let vorm = m[5];
+                                let kleur = m[6];
+                                let rotatie = parseInt(m[7]) || 0;
+                                plaatsAnker(vorm, [lat, lng], naam, null, null, kleur, rotatie);
+                            } else {
+                                let parts = line.split(',');
+                                if(parts.length >= 6) {
+                                    plaatsAnker(parts[3], [parseFloat(parts[1]), parseFloat(parts[2])], parts[0], null, null, parts[4], parseInt(parts[5]));
+                                }
+                            }
+                        }
+                    }
+                    verbindAnkers();
+                } catch(err) { alert("Fout bij inladen data. Formaat onbekend."); console.error(err); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // Rotaties achtergrond
+        window.huidigeAchtergrondRotatie = 0;
+        function draaiAchtergrond(graden) {
+            window.huidigeAchtergrondRotatie = graden;
+            document.getElementById('achtergrond-wrapper').style.transform = getQuatMatrix(graden);
+        }
+        function stapAchtergrond(stap) {
+            window.huidigeAchtergrondRotatie = (window.huidigeAchtergrondRotatie + stap) % 360; 
+            document.getElementById('achtergrond-wrapper').style.transform = getQuatMatrix(window.huidigeAchtergrondRotatie);
+        }
+
+        // Rotaties Hex-container
+        window.huidigeKaartRotatie = 0;
+        function draaiKaart(graden) {
+            window.huidigeKaartRotatie = graden;
+            document.getElementById('hex-container').style.transform = getQuatMatrix(graden);
+            if (window.tegenRotatieActief && !window.isSpinnen) draaiVormen(-graden);
+        }
+        function stapKaart(stap) {
+            window.huidigeKaartRotatie = (window.huidigeKaartRotatie + stap) % 360;
+            document.getElementById('hex-container').style.transform = getQuatMatrix(window.huidigeKaartRotatie);
+            if (window.tegenRotatieActief && !window.isSpinnen) draaiVormen(-window.huidigeKaartRotatie);
+        }
+
+        // Hexagram Generatie & Zoom
+        const radius = 45, kolommen = 30, rijen = 30;
+        function genereerHexRaster(cols, rows, r) {
+            const canvas = document.createElement('canvas');
+            const hB = Math.sqrt(3) * r; const hH = 2 * r;
+            canvas.width = cols * hB + (hB / 2); canvas.height = rows * (hH * 0.75) + (hH / 4);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'rgba(233, 69, 96, 0.5)'; ctx.lineWidth = 1;
+            for (let rij = 0; rij < rows; rij++) {
+                for (let kol = 0; kol < cols; kol++) {
+                    let x = kol * hB + (rij % 2 === 1 ? hB / 2 : 0) + hB / 2;
+                    let y = rij * (hH * 0.75) + hH / 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        let hoek = (Math.PI / 180) * (60 * i - 30); ctx.lineTo(x + r * Math.cos(hoek), y + r * Math.sin(hoek));
+                    }
+                    ctx.closePath(); ctx.stroke();
+                }
+            }
+            return { imgData: canvas.toDataURL('image/png'), bounds: [[0, 0], [canvas.height, canvas.width]] };
+        }
+
+        var hexMap = L.map('hex-kaart', { zoomControl: false, crs: L.CRS.Simple, minZoom: -2, maxZoom: 4, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false });
+        const hexData = genereerHexRaster(kolommen, rijen, radius);
+        L.imageOverlay(hexData.imgData, hexData.bounds).addTo(hexMap);
+        hexMap.fitBounds(hexData.bounds);
+
+        function zoomHex(actie) {
+            if (actie === 'in') {
+                if (hexMap.getZoom() < hexMap.getMaxZoom()) hexMap.setZoom(hexMap.getZoom() + 1);
+            } else if (actie === 'uit') {
+                if (hexMap.getZoom() > hexMap.getMinZoom()) hexMap.setZoom(hexMap.getZoom() - 1);
+            }
+        }
+
+        // Ankerpunt logica
+        var iteratieTeller = 1;
+        window.actieveAnkers = []; 
+        window.netwerkLijnen = null; 
+        
+        window.draaiIndividueleMarker = function(markerId, graden) {
+            let el = document.getElementById(markerId);
+            if(el) { el.style.transform = getQuatMatrix(graden); el.setAttribute('data-local-rot', graden); }
+        };
+
+        async function zoekAnkerLocatie() {
+            let input = document.getElementById('anker-zoek').value;
+            if (!input) return;
+            let coordMatch = input.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
+            if (coordMatch) {
+                achtergrondMap.flyTo([parseFloat(coordMatch[1]), parseFloat(coordMatch[2])], 14, { animate: true, duration: 1.5 });
+            } else {
+                let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`;
+                let response = await fetch(url);
+                let data = await response.json();
+                if (data.length > 0) achtergrondMap.flyTo([parseFloat(data[0].lat), parseFloat(data[0].lon)], 14, { animate: true, duration: 1.5 });
+            }
+            if(window.innerWidth <= 768) toggleMobielMenu();
+        }
+
+        function plaatsAnker(vormType, specifiekeCoords = null, specifiekeNaam = null, modData = null, iteratie = null, specifiekeKleur = null, specifiekeRotatie = null) {
+            let center = specifiekeCoords || achtergrondMap.getCenter();
+            let kleur = specifiekeKleur || document.getElementById('marker-kleur').value;
+            let naam = specifiekeNaam || document.getElementById('anker-naam').value || `Anker ${iteratieTeller}`;
+            let initiaal = naam.substring(0, 3).toUpperCase();
+            
+            let markerId = 'dyn-maker-' + iteratieTeller;
+            let startRotatie = specifiekeRotatie !== null ? specifiekeRotatie : (window.huidigeVormRotatie || 0);
+            
+            var customIcon = L.divIcon({ 
+                className: '', 
+                html: `<div class="roterende-groep dyn-maker" id="${markerId}" style="transform: ${getQuatMatrix(startRotatie)};" data-local-rot="${startRotatie}">
+                           <div class="basis-vorm vorm-${vormType}" style="background-color: ${kleur}; border-color: #fff;">${initiaal}</div>
+                           <div class="marker-label">${naam}</div>
+                       </div>`, 
+                iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14]
+            });
+            
+            let marker = L.marker(center, { icon: customIcon, draggable: true });
+            
+            let modContent = modData !== null ? `<p><span class="mod21-data">Collatz Mod 21: [${modData}]</span></p>` : '';
+            let iteratieContent = iteratie !== null ? `<p><span class="iteratie-data">Stapwaarde: ${iteratie}</span></p>` : '';
+            
+            let popupContent = `
+                <div class="popup-content">
+                    <h3>${naam}</h3>
+                    ${iteratieContent}
+                    ${modContent}
+                    <p><b>Kleur:</b> <span style="background:${kleur}; padding: 2px 12px; border-radius:3px; display:inline-block; border:1px solid #333;"></span></p>
+                    <p><b>Quat Rotatie:</b></p>
+                    <input type="range" min="0" max="360" value="${startRotatie}" oninput="draaiIndividueleMarker('${markerId}', this.value)">
+                    <button class="btn-verwijder-anker" style="background:#dc2626; color:white; border:none; padding:6px; margin-top:8px; cursor:pointer; width:100%; font-weight:bold; border-radius:3px;">Verwijder Anker</button>
+                </div>`;
+                
+            let popup = L.popup().setContent(popupContent);
+            marker.bindPopup(popup).addTo(achtergrondMap); 
+            
+            window.actieveAnkers.push(marker);
+
+            marker.on('popupopen', function(e) {
+                let btn = e.popup.getElement().querySelector('.btn-verwijder-anker');
+                if(btn) btn.onclick = () => {
+                    achtergrondMap.removeLayer(marker);
+                    window.actieveAnkers = window.actieveAnkers.filter(m => m !== marker);
+                    if(window.netwerkLijnen) verbindAnkers(); 
+                };
+            });
+            
+            marker.on('drag', function() { if(window.netwerkLijnen) verbindAnkers(); });
+
+            iteratieTeller++;
+        }
+
+        function laadProjectData(type) {
+            let dataArr = []; let kleur = "#e94560";
+            if(type === 'alteratie') { dataArr = psychoProjectData.blauwdruk_pijl_van_de_tijd; kleur = "#3b82f6"; } 
+            else if (type === 'collatz') { dataArr = psychoProjectData.modulaire_iteratiematrix_18_fasen_attractor; kleur = "#10b981"; }
+            
+            document.getElementById('marker-kleur').value = kleur;
+            dataArr.forEach(item => { plaatsAnker('driehoek', item.coords, `Fase ${item.fase}: ${item.locatie}`, item.congruentie_mod_21, item.iteratie, kleur); });
+            verbindAnkers();
+            if(dataArr.length > 0) achtergrondMap.flyTo([52.38, 4.9], 10);
+            
+            if(window.innerWidth <= 768) toggleMobielMenu();
+        }
+
+        function verbindAnkers() {
+            if (window.netwerkLijnen) { achtergrondMap.removeLayer(window.netwerkLijnen); window.netwerkLijnen = null; }
+            if (window.actieveAnkers.length < 2) return; 
+            let latlngs = window.actieveAnkers.map(m => m.getLatLng());
+            if(window.actieveAnkers.length >= 18) latlngs.push(window.actieveAnkers[0].getLatLng());
+            window.netwerkLijnen = L.polyline(latlngs, { color: '#eab308', weight: 4, dashArray: '8, 8', opacity: 0.8 }).addTo(achtergrondMap);
+        }
+
+        function wisAlleAnkersEnLijnen() {
+            if (window.netwerkLijnen) { achtergrondMap.removeLayer(window.netwerkLijnen); window.netwerkLijnen = null; }
+            window.actieveAnkers.forEach(m => achtergrondMap.removeLayer(m));
+            window.actieveAnkers = [];
+        }
+
+        window.huidigeVormRotatie = 0; window.tegenRotatieActief = false; window.isSpinnen = false;
+        function draaiVormen(graden) {
+            window.huidigeVormRotatie = graden;
+            document.querySelectorAll('.roterende-groep').forEach(el => { el.classList.remove('spinnen'); el.style.transform = getQuatMatrix(graden); el.setAttribute('data-local-rot', graden); });
+        }
+        function toggleSpinnenVormen() {
+            window.isSpinnen = !window.isSpinnen;
+            document.querySelectorAll('.roterende-groep').forEach(el => {
+                if (window.isSpinnen) el.classList.add('spinnen'); 
+                else { let savedRot = el.getAttribute('data-local-rot') || window.huidigeVormRotatie; el.classList.remove('spinnen'); el.style.transform = getQuatMatrix(savedRot); }
+            });
+        }
+        function toggleTegenRotatie() {
+            window.tegenRotatieActief = !window.tegenRotatieActief;
+            if (window.tegenRotatieActief) draaiVormen(-window.huidigeAchtergrondRotatie); else draaiVormen(0);
+        }
+
+        L.Draggable.prototype._onMove = function (e) {
+            if (e._simulated || !this._enabled) return;
+            if (e.touches && e.touches.length > 1) { this._moved = true; return; }
+            var first = (e.touches && e.touches.length === 1 ? e.touches[0] : e);
+            var rawOffset = new L.Point(first.clientX, first.clientY).subtract(this._startPoint);
+            
+            if (!rawOffset.x && !rawOffset.y) return;
+            if (Math.abs(rawOffset.x) + Math.abs(rawOffset.y) < this.options.clickTolerance) return;
+
+            if (window.spiegelX) rawOffset.x *= window.spiegelX;
+            if (window.spiegelY) rawOffset.y *= window.spiegelY;
+
+            let rad = -(window.huidigeAchtergrondRotatie || 0) * (Math.PI / 180);
+
+            var w = Math.cos(rad / 2); var z = Math.sin(rad / 2);
+            var qNx = (w*w - z*z)*rawOffset.x - (2*w*z)*rawOffset.y;
+            var qNy = (2*w*z)*rawOffset.x + (w*w - z*z)*rawOffset.y;
+            var offset = new L.Point(qNx, qNy);
+
+            L.DomEvent.preventDefault(e);
+            if (!this._moved) {
+                this.fire('dragstart'); this._moved = true;
+                this._startPos = L.DomUtil.getPosition(this._element).subtract(offset);
+                L.DomUtil.addClass(document.body, 'leaflet-dragging');
+            }
+            this._newPos = this._startPos.add(offset);
+            this._moving = true;
+            L.Util.cancelAnimFrame(this._animRequest);
+            this._animRequest = L.Util.requestAnimFrame(this._updatePosition, this, true);
+        };
+    </script>
+</body>
+</html>
