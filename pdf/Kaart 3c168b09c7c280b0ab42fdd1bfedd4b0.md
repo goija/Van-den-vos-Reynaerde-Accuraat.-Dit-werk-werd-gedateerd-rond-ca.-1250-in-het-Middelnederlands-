@@ -56,6 +56,8 @@ De screenshot toont een webapplicatie ([https://van-den-vos-reynaerde-accuraat-d
 - Ankerpunt-instellingen
 - [https://github.com/goija/Van-den-vos-Reynaerde-Accuraat.-Dit-werk-werd-gedateerd-rond-ca.-1250-in-het-Middelnederlands-](https://github.com/goija/Van-den-vos-Reynaerde-Accuraat.-Dit-werk-werd-gedateerd-rond-ca.-1250-in-het-Middelnederlands-)
 
+- kaart met datapunten : https://van-den-vos-reynaerde-accuraat-dit.vercel.app/kaarten/datapunten.html
+
 https://van-den-vos-reynaerde-accuraat-dit.vercel.app/kaarten/ankerpunt.html
 ---
 
