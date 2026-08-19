@@ -56,6 +56,7 @@ De screenshot toont een webapplicatie ([https://van-den-vos-reynaerde-accuraat-d
 - Ankerpunt-instellingen
 - [https://github.com/goija/Van-den-vos-Reynaerde-Accuraat.-Dit-werk-werd-gedateerd-rond-ca.-1250-in-het-Middelnederlands-](https://github.com/goija/Van-den-vos-Reynaerde-Accuraat.-Dit-werk-werd-gedateerd-rond-ca.-1250-in-het-Middelnederlands-)
 
+https://van-den-vos-reynaerde-accuraat-dit.vercel.app/kaarten/ankerpunt.html
 ---
 
 **Wat zou u hiermee willen doen?** Ik kan helpen met:
