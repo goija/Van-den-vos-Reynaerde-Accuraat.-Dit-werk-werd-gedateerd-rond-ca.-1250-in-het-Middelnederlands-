@@ -1,49 +1,37 @@
+Omdat ik als AI geen fysiek `.png` of `.jpg` bestand in jouw map kan opslaan (wat de eerdere fout met `afbeelding.png` veroorzaakte), heb ik een veel robuustere, wiskundige oplossing bedacht.
+
+We laten JavaScript het 18x13 hexacom raster (hexagon grid) **live berekenen en tekenen**. Het script genereert razendsnel een onzichtbaar `canvas`, tekent daar de 18x13 honingraat op (inclusief lichte coördinaten in elk vakje zodat je makkelijk kunt navigeren), en zet dit direct om naar een ingebouwde PNG-afbeelding (`afbeelding_png_data`).
+
+Hierdoor heb je **geen losse afbeeldingsbestanden meer nodig** en kan de code nooit meer stuklopen op een ontbrekend bestand.
+
+Kopieer deze volledige code en vervang de inhoud van je huidige `.html` bestand. Sla het op en open het in je browser:
+
+```html
 <!DOCTYPE html>
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historische Kaart: Familie Loncke op Eigen Ontwerp</title>
+    <title>Historische Kaart op 18x13 Hexacom Raster</title>
     
-    <!-- 1. Laad de Leaflet CSS -->
+    <!-- Laad de Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-    <!-- 2. Styling van de pagina en de icoontjes -->
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0; 
-        }
-        #kaart {
-            height: 100vh;
-            width: 100%;
-            background: #fff; /* Achtergrondkleur achter de afbeelding */
-        }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; background-color: #e0e0e0; }
+        #kaart { height: 100vh; width: 100%; background: #fff; }
         
-        /* Basisstijl voor alle knooppunt-cirkeltjes */
         .knooppunt-icoon {
-            color: #fff;
-            border: 2px solid #333;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            font-size: 12px;
+            color: #fff; border: 2px solid #333; border-radius: 50%; width: 28px; height: 28px;
+            display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 12px;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
         }
         
-        /* Themakleuren per familietak */
-        .stamlijn { background-color: #8b0000; }     /* Rood */
-        .zeeuwse-tak { background-color: #2c5e3b; }  /* Groen */
-        .maritieme-tak { background-color: #1a4b6e; }/* Blauw */
+        /* Themakleuren */
+        .stamlijn { background-color: #8b0000; }
+        .zeeuwse-tak { background-color: #2c5e3b; }
+        .maritieme-tak { background-color: #1a4b6e; }
         
-        /* Styling van de pop-ups (tekstwolkjes) */
         .popup-content h3 { margin: 0 0 5px 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
         .popup-content p { margin: 5px 0 0 0; font-size: 13px; line-height: 1.4; color: #444; }
         .popup-content .tak-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: inline-block;}
@@ -51,45 +39,99 @@
 </head>
 <body>
 
-    <!-- 3. De container waar de kaart in komt -->
     <div id="kaart"></div>
 
-    <!-- 4. Laad het Leaflet JavaScript-bestand -->
+    <!-- Laad het Leaflet JavaScript-bestand -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- 5. Ons eigen script om de kaart op te bouwen -->
     <script>
-        // STAP A: Initialiseer de kaart voor een platte afbeelding (L.CRS.Simple)
+        // STAP 1: HET 18x13 HEXACOM RASTER GENEREREN (Live Image Generation)
+        function genereerHexRasterAfbeelding(kolommen, rijen, radius) {
+            const canvas = document.createElement('canvas');
+            const hexBreedte = Math.sqrt(3) * radius;
+            const hexHoogte = 2 * radius;
+            
+            // Bereken de exacte afmetingen van de afbeelding
+            canvas.width = kolommen * hexBreedte + (hexBreedte / 2);
+            canvas.height = rijen * (hexHoogte * 0.75) + (hexHoogte / 4);
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Achtergrond
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Lijnkleur van het raster
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 1;
+            
+            for (let r = 0; r < rijen; r++) {
+                for (let k = 0; k < kolommen; k++) {
+                    // Bereken X en Y voor het middelpunt van elke hex
+                    let x = k * hexBreedte + (r % 2 === 1 ? hexBreedte / 2 : 0) + hexBreedte / 2;
+                    let y = r * (hexHoogte * 0.75) + hexHoogte / 2;
+                    
+                    // Teken de hexagoon
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        let hoek_deg = 60 * i - 30; 
+                        let hoek_rad = Math.PI / 180 * hoek_deg;
+                        let px = x + radius * Math.cos(hoek_rad);
+                        let py = y + radius * Math.sin(hoek_rad);
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    
+                    // Referentienummers (kolom, rij) heel licht in de achtergrond printen
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(k + "," + r, x, y);
+                }
+            }
+            
+            // Return de direct gegenereerde afbeeldingsdata en de bijbehorende afmetingen
+            return {
+                afbeelding_png_data: canvas.toDataURL('image/png'),
+                breedte: canvas.width,
+                hoogte: canvas.height
+            };
+        }
+
+        // Maak het raster aan (18 kolommen, 13 rijen, radius 40 pixels per hex)
+        var hexRaster = genereerHexRasterAfbeelding(18, 13, 40);
+
+        // STAP 2: DE KAART INITIALISEREN
         var map = L.map('kaart', {
             minZoom: -1,
-            maxZoom: 4,
-            crs: L.CRS.Simple // Cruciaal: dit vertelt de kaart dat het geen wereldbol is!
+            maxZoom: 3,
+            crs: L.CRS.Simple // Plat vlak, geen wereldbol
         });
-
-        // STAP B: Laad jouw eigen tekening in
-        var mijnKaartUrl = 'afbeelding.jpg'; // Zorg dat de naam exact klopt
         
-        // We definiëren een denkbeeldig raster voor je afbeelding (van 0 tot 1000)
-        var bounds = [[0, 0], [1000, 1000]]; 
+        // Let op: Leaflet zet [0,0] standaard linksonder. 
+        // We passen de bounds exact aan op de berekende afmetingen van ons Canvas.
+        var bounds = [[0, 0], [hexRaster.hoogte, hexRaster.breedte]]; 
         
-        L.imageOverlay(mijnKaartUrl, bounds, {
-            attribution: 'Ondergrond: Eigen Geometrisch Ontwerp'
+        // Gebruik de live gegenereerde afbeelding als ondergrond
+        L.imageOverlay(hexRaster.afbeelding_png_data, bounds, {
+            attribution: 'Ondergrond: Dynamisch 18x13 Hexacom Raster'
         }).addTo(map);
 
-        // Zorg dat de afbeelding mooi in het midden van het scherm start
         map.fitBounds(bounds);
 
-        // STAP C: De Familie Data
-        // Let op de 'coords'. Deze kun je straks aanpassen aan de hand van je eigen klik-coördinaten!
+        // STAP 3: DATA KOPPELEN AAN DE RASTER COÖRDINATEN
+        // Je kunt deze coördinaten aanpassen nadat je met de muis op de kaart hebt geklikt!
         var familieData = [
-            { id: "1", tak: "Stamlijn", class: "stamlijn", locatie: "Roosendaal", beschrijving: "Oorsprong van de familie.", coords: [500, 500] },
-            { id: "2", tak: "Tak A: Tholen", class: "zeeuwse-tak", locatie: "Tholen", beschrijving: "Adriaen Pietersz & Lijntje Lonke.", coords: [550, 480] },
-            { id: "3", tak: "Tak A: Zierikzee", class: "zeeuwse-tak", locatie: "Zierikzee", beschrijving: "Jacob Lambrechtsz. Loncke", coords: [600, 450] },
-            { id: "6", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Amsterdam", beschrijving: "Admiraal Hendrick Lonck", coords: [700, 500] },
-            { id: "8", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Brazilië", beschrijving: "Verovering Pernambuco", coords: [200, 200] }
+            { id: "1", tak: "Stamlijn", class: "stamlijn", locatie: "Roosendaal", beschrijving: "Oorsprong van de familie.", coords: [260, 240] },
+            { id: "2", tak: "Tak A: Tholen", class: "zeeuwse-tak", locatie: "Tholen", beschrijving: "Adriaen Pietersz & Lijntje Lonke.", coords: [320, 275] },
+            { id: "3", tak: "Tak A: Zierikzee", class: "zeeuwse-tak", locatie: "Zierikzee", beschrijving: "Jacob Lambrechtsz. Loncke", coords: [380, 240] },
+            { id: "6", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Amsterdam", beschrijving: "Admiraal Hendrick Lonck", coords: [440, 555] },
+            { id: "8", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Brazilië", beschrijving: "Verovering Pernambuco", coords: [200, 760] }
         ];
 
-        // STAP D: Teken de datapunten op de kaart
         familieData.forEach(function(punt) {
             var customIcon = L.divIcon({
                 className: '', 
@@ -111,9 +153,7 @@
             L.marker(punt.coords, {icon: customIcon}).bindPopup(popupHTML).addTo(map);
         });
 
-        // STAP E: HET HULPMIDDEL - Klikken voor coördinaten
-        // Klik ergens op je tekening, en er verschijnt een pop-up met de coördinaten.
-        // Deze coördinaten kun je vervolgens invullen bij 'STAP C'.
+        // STAP 4: HULPMIDDEL - Klik voor de coördinaten
         map.on('click', function(e) {
             var y = e.latlng.lat.toFixed(1);
             var x = e.latlng.lng.toFixed(1);
@@ -121,12 +161,12 @@
 
             L.popup()
                 .setLatLng(e.latlng)
-                .setContent("<b>Jouw coördinaten:</b><br>" + coordinatenTekst)
+                .setContent("<b>Jouw Leaflet coördinaat:</b><br>" + coordinatenTekst + "<br><br><small>Kopieer dit naar de 'coords' in de code!</small>")
                 .openOn(map);
-
-            console.log("Geklikte coördinaten: " + coordinatenTekst);
         });
 
     </script>
 </body>
 </html>
+
+```
