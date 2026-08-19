@@ -3,161 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historische Kaart op 18x13 Hexacom Raster</title>
+    <title>4D Psychogeografische Kaart (Hexacom 13x18)</title>
     
-    <!-- Laad de Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; background-color: #e0e0e0; }
-        #kaart { height: 100vh; width: 100%; background: #fff; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; background-color: #2c3e50; }
+        #kaart { height: 100vh; width: 100%; background: #ecf0f1; }
         
-        .knooppunt-icoon {
-            color: #fff; border: 2px solid #333; border-radius: 50%; width: 28px; height: 28px;
-            display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 12px;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        /* De kubus styling voor de iteratie-knooppunten */
+        .kubus-icoon {
+            color: #fff; 
+            border: 2px solid #222; 
+            width: 26px; 
+            height: 26px;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-weight: bold; 
+            font-size: 11px;
+            box-shadow: 3px 3px 0px rgba(0,0,0,0.7);
+            transform: rotate(-5deg); 
         }
         
-        /* Themakleuren */
-        .stamlijn { background-color: #8b0000; }
-        .zeeuwse-tak { background-color: #2c5e3b; }
-        .maritieme-tak { background-color: #1a4b6e; }
+        /* Kleurcodering op basis van het iteratieverloop */
+        .knoop-nulpunt { background-color: #e74c3c; } /* Rood voor Start/Sluiting */
+        .knoop-even { background-color: #2980b9; }    /* Blauw voor deling (even) */
+        .knoop-oneven { background-color: #f39c12; }  /* Oranje voor 3n+1 (oneven) */
+        .knoop-dieptepunt { background-color: #8e44ad; } /* Paars voor uitschieters zoals -272 / -91 */
         
-        .popup-content h3 { margin: 0 0 5px 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
-        .popup-content p { margin: 5px 0 0 0; font-size: 13px; line-height: 1.4; color: #444; }
-        .popup-content .tak-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: inline-block;}
+        .popup-content h3 { margin: 0 0 5px 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 14px;}
+        .popup-content p { margin: 5px 0 0 0; font-size: 12px; line-height: 1.4; color: #444; }
+        .data-tag { font-family: monospace; font-size: 11px; background: #eee; padding: 2px 4px; border-radius: 3px; }
     </style>
 </head>
 <body>
 
     <div id="kaart"></div>
 
-    <!-- Laad het Leaflet JavaScript-bestand -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // STAP 1: HET 18x13 HEXACOM RASTER GENEREREN (Live Image Generation)
-        function genereerHexRasterAfbeelding(kolommen, rijen, radius) {
+        // JOUW PSYCHOGEOGRAFISCHE JSON DATA
+        const projectData = {
+            "psychogeografisch_project": {
+                "hoofd_parameters": {
+                    "origin_absoluut_nulpunt": "Oude Kerk, Amsterdam",
+                    "tijdsframe": "1578 - 1853"
+                },
+                "modulaire_iteratiematrix_18_fasen_attractor": [
+                    { "fase": 0, "afstand_km": 0.00, "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Tafelberg (Origin - Het Zendpunt)" },
+                    { "fase": 1, "afstand_km": 2.51, "iteratie": -50, "congruentie_mod_21": 13, "locatie": "Gooimeer" },
+                    { "fase": 2, "afstand_km": 5.02, "iteratie": -25, "congruentie_mod_21": 17, "locatie": "Naarderbos" },
+                    { "fase": 3, "afstand_km": 7.53, "iteratie": -74, "congruentie_mod_21": 10, "locatie": "IJmeer (Oost)" },
+                    { "fase": 4, "afstand_km": 10.04, "iteratie": -37, "congruentie_mod_21": 5, "locatie": "Pampus (Zuid)" },
+                    { "fase": 5, "afstand_km": 12.55, "iteratie": -110, "congruentie_mod_21": 16, "locatie": "IJmeer (Midden)" },
+                    { "fase": 6, "afstand_km": 15.06, "iteratie": -55, "congruentie_mod_21": 8, "locatie": "IJmeer (West)" },
+                    { "fase": 7, "afstand_km": 17.57, "iteratie": -164, "congruentie_mod_21": 4, "locatie": "IJburg / Zeeburg (Eerste Echo)" },
+                    { "fase": 8, "afstand_km": 20.08, "iteratie": -82, "congruentie_mod_21": 2, "locatie": "Amsterdam (Oostelijke Handelskade)" },
+                    { "fase": 9, "afstand_km": 22.59, "iteratie": -41, "congruentie_mod_21": 1, "locatie": "Amsterdam (Centrum / Houthavens)" },
+                    { "fase": 10, "afstand_km": 25.10, "iteratie": -122, "congruentie_mod_21": 4, "locatie": "Noordzeekanaal (Tweede Echo)" },
+                    { "fase": 11, "afstand_km": 27.61, "iteratie": -61, "congruentie_mod_21": 2, "locatie": "Zaanstad (Zuid)" },
+                    { "fase": 12, "afstand_km": 30.12, "iteratie": -182, "congruentie_mod_21": 7, "locatie": "Zaanstad (Centrum)" },
+                    { "fase": 13, "afstand_km": 32.63, "iteratie": -91, "congruentie_mod_21": 14, "locatie": "Zaandijk (De Kritieke Knoop)" },
+                    { "fase": 14, "afstand_km": 35.14, "iteratie": -272, "congruentie_mod_21": 1, "locatie": "Krommenie (Absolute Dieptepunt)" },
+                    { "fase": 15, "afstand_km": 37.65, "iteratie": -136, "congruentie_mod_21": 11, "locatie": "Assendelft" },
+                    { "fase": 16, "afstand_km": 40.16, "iteratie": -68, "congruentie_mod_21": 16, "locatie": "Heemskerk (Buitengebied)" },
+                    { "fase": 17, "afstand_km": 42.67, "iteratie": -34, "congruentie_mod_21": 8, "locatie": "Heemskerk (Oost)" },
+                    { "fase": 18, "afstand_km": 45.30, "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Kasteel Poelenburg (Sluiting)" }
+                ]
+            }
+        };
+
+        const radius = 40; // Grootte van de hexagonen
+        const kolommen = 13;
+        const rijen = 18;
+
+        // STAP 1: HET RASTER GENEREREN
+        function genereerHexRaster(cols, rows, r) {
             const canvas = document.createElement('canvas');
-            const hexBreedte = Math.sqrt(3) * radius;
-            const hexHoogte = 2 * radius;
+            const hBreedte = Math.sqrt(3) * r;
+            const hHoogte = 2 * r;
             
-            // Bereken de exacte afmetingen van de afbeelding
-            canvas.width = kolommen * hexBreedte + (hexBreedte / 2);
-            canvas.height = rijen * (hexHoogte * 0.75) + (hexHoogte / 4);
-            
+            canvas.width = cols * hBreedte + (hBreedte / 2);
+            canvas.height = rows * (hHoogte * 0.75) + (hHoogte / 4);
             const ctx = canvas.getContext('2d');
             
-            // Achtergrond
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = '#fdfdfd';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Lijnkleur van het raster
-            ctx.strokeStyle = '#2c3e50';
+            ctx.strokeStyle = '#bdc3c7'; // Subtiele lijnen
             ctx.lineWidth = 1;
             
-            for (let r = 0; r < rijen; r++) {
-                for (let k = 0; k < kolommen; k++) {
-                    // Bereken X en Y voor het middelpunt van elke hex
-                    let x = k * hexBreedte + (r % 2 === 1 ? hexBreedte / 2 : 0) + hexBreedte / 2;
-                    let y = r * (hexHoogte * 0.75) + hexHoogte / 2;
+            for (let rij = 0; rij < rows; rij++) {
+                for (let kol = 0; kol < cols; kol++) {
+                    let x = kol * hBreedte + (rij % 2 === 1 ? hBreedte / 2 : 0) + hBreedte / 2;
+                    let y = rij * (hHoogte * 0.75) + hHoogte / 2;
                     
-                    // Teken de hexagoon
                     ctx.beginPath();
                     for (let i = 0; i < 6; i++) {
-                        let hoek_deg = 60 * i - 30; 
-                        let hoek_rad = Math.PI / 180 * hoek_deg;
-                        let px = x + radius * Math.cos(hoek_rad);
-                        let py = y + radius * Math.sin(hoek_rad);
+                        let hoek = (Math.PI / 180) * (60 * i - 30);
+                        let px = x + r * Math.cos(hoek);
+                        let py = y + r * Math.sin(hoek);
                         if (i === 0) ctx.moveTo(px, py);
                         else ctx.lineTo(px, py);
                     }
                     ctx.closePath();
                     ctx.stroke();
                     
-                    // Referentienummers (kolom, rij) heel licht in de achtergrond printen
+                    // As-nummers in het raster (Kolom, Rij)
                     ctx.fillStyle = '#e0e0e0';
-                    ctx.font = '10px Arial';
+                    ctx.font = '10px Courier New';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(k + "," + r, x, y);
+                    ctx.fillText(`${kol},${rij}`, x, y);
                 }
             }
-            
-            // Return de direct gegenereerde afbeeldingsdata en de bijbehorende afmetingen
-            return {
-                afbeelding_png_data: canvas.toDataURL('image/png'),
-                breedte: canvas.width,
-                hoogte: canvas.height
-            };
+            return { imgData: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height };
         }
 
-        // Maak het raster aan (18 kolommen, 13 rijen, radius 40 pixels per hex)
-        var hexRaster = genereerHexRasterAfbeelding(18, 13, 40);
+        const raster = genereerHexRaster(kolommen, rijen, radius);
 
-        // STAP 2: DE KAART INITIALISEREN
-        var map = L.map('kaart', {
-            minZoom: -1,
-            maxZoom: 3,
-            crs: L.CRS.Simple // Plat vlak, geen wereldbol
-        });
-        
-        // Let op: Leaflet zet [0,0] standaard linksonder. 
-        // We passen de bounds exact aan op de berekende afmetingen van ons Canvas.
-        var bounds = [[0, 0], [hexRaster.hoogte, hexRaster.breedte]]; 
-        
-        // Gebruik de live gegenereerde afbeelding als ondergrond
-        L.imageOverlay(hexRaster.afbeelding_png_data, bounds, {
-            attribution: 'Ondergrond: Dynamisch 18x13 Hexacom Raster'
-        }).addTo(map);
-
+        // STAP 2: KAART OPZETTEN
+        var map = L.map('kaart', { minZoom: -1, maxZoom: 3, crs: L.CRS.Simple });
+        var bounds = [[0, 0], [raster.h, raster.w]]; 
+        L.imageOverlay(raster.imgData, bounds).addTo(map);
         map.fitBounds(bounds);
 
-        // STAP 3: DATA KOPPELEN AAN DE RASTER COÖRDINATEN
-        // Je kunt deze coördinaten aanpassen nadat je met de muis op de kaart hebt geklikt!
-        var familieData = [
-            { id: "1", tak: "Stamlijn", class: "stamlijn", locatie: "Roosendaal", beschrijving: "Oorsprong van de familie.", coords: [260, 240] },
-            { id: "2", tak: "Tak A: Tholen", class: "zeeuwse-tak", locatie: "Tholen", beschrijving: "Adriaen Pietersz & Lijntje Lonke.", coords: [320, 275] },
-            { id: "3", tak: "Tak A: Zierikzee", class: "zeeuwse-tak", locatie: "Zierikzee", beschrijving: "Jacob Lambrechtsz. Loncke", coords: [380, 240] },
-            { id: "6", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Amsterdam", beschrijving: "Admiraal Hendrick Lonck", coords: [440, 555] },
-            { id: "8", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Brazilië", beschrijving: "Verovering Pernambuco", coords: [200, 760] }
-        ];
+        // Helper functie: Bereken de Leaflet coördinaten [Y, X] exact op het middelpunt van een specifieke hexagoon
+        function getHexCenterCoords(kolom, rij) {
+            const hB = Math.sqrt(3) * radius;
+            const hH = 2 * radius;
+            let x = kolom * hB + (rij % 2 === 1 ? hB / 2 : 0) + hB / 2;
+            let y_canvas = rij * (hH * 0.75) + hH / 2;
+            // Leaflet berekent Y vanaf de bodem in CRS.Simple, Canvas vanaf de top
+            let y_leaflet = raster.h - y_canvas; 
+            return [y_leaflet, x];
+        }
 
-        familieData.forEach(function(punt) {
+        // STAP 3: DATA MAPPEN OP HET RASTER
+        var trajectLijnCoords = [];
+        var fasenData = projectData.psychogeografisch_project.modulaire_iteratiematrix_18_fasen_attractor;
+
+        fasenData.forEach(function(punt) {
+            // Wiskundige plaatsing:
+            // Y-as (Rij) = De fase in de iteratie (0 t/m 17). Fase 18 overlapt met 0 voor de sluiting.
+            let rijIndex = punt.fase % 18; 
+            
+            // X-as (Kolom) = De modulo 21 waarde, geprojecteerd op de 13 kolommen van het raster
+            let kolomIndex = punt.congruentie_mod_21 % 13; 
+
+            // Haal het exacte coördinaat op
+            let exacteCoords = getHexCenterCoords(kolomIndex, rijIndex);
+            
+            // Voeg toe aan het traject voor de verbindingslijn
+            trajectLijnCoords.push(exacteCoords);
+
+            // Bepaal de kleur/styling van de kubus op basis van het type iteratie
+            let cssKlasse = "knoop-even";
+            if (punt.iteratie % 2 !== 0) cssKlasse = "knoop-oneven";
+            if (punt.fase === 0 || punt.fase === 18) cssKlasse = "knoop-nulpunt";
+            if (punt.iteratie === -91 || punt.iteratie <= -182) cssKlasse = "knoop-dieptepunt";
+
             var customIcon = L.divIcon({
                 className: '', 
-                html: `<div class="knooppunt-icoon ${punt.class}">${punt.id}</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
+                html: `<div class="kubus-icoon ${cssKlasse}">${punt.fase}</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
             });
 
             var popupHTML = `
                 <div class="popup-content">
-                    <span class="tak-label" style="color: ${punt.class === 'stamlijn' ? '#8b0000' : punt.class === 'zeeuwse-tak' ? '#2c5e3b' : '#1a4b6e'}">
-                        ${punt.tak}
+                    <span style="font-size: 10px; font-weight: bold; color: #7f8c8d; text-transform: uppercase;">
+                        Fase ${punt.fase} | Raster: [${kolomIndex}, ${rijIndex}]
                     </span>
                     <h3>${punt.locatie}</h3>
-                    <p>${punt.beschrijving}</p>
+                    <p>
+                        <span class="data-tag">Iteratie: ${punt.iteratie}</span><br><br>
+                        Mod(21): ${punt.congruentie_mod_21}<br>
+                        Afstand: ${punt.afstand_km} km
+                    </p>
                 </div>
             `;
 
-            L.marker(punt.coords, {icon: customIcon}).bindPopup(popupHTML).addTo(map);
+            L.marker(exacteCoords, {icon: customIcon, zIndexOffset: 100}).bindPopup(popupHTML).addTo(map);
         });
 
-        // STAP 4: HULPMIDDEL - Klik voor de coördinaten
-        map.on('click', function(e) {
-            var y = e.latlng.lat.toFixed(1);
-            var x = e.latlng.lng.toFixed(1);
-            var coordinatenTekst = "[" + y + ", " + x + "]";
-
-            L.popup()
-                .setLatLng(e.latlng)
-                .setContent("<b>Jouw Leaflet coördinaat:</b><br>" + coordinatenTekst + "<br><br><small>Kopieer dit naar de 'coords' in de code!</small>")
-                .openOn(map);
-        });
+        // STAP 4: TEKEN DE TRAJECTLIJN (DE ATTRACTOR VECTOR)
+        // Dit trekt een zichtbare lijn door de 18 fasen om de dynamica zichtbaar te maken
+        L.polyline(trajectLijnCoords, {
+            color: '#34495e',
+            weight: 3,
+            opacity: 0.6,
+            dashArray: '5, 10', // Stippellijn
+            lineJoin: 'round'
+        }).addTo(map);
 
     </script>
 </body>
 </html>
-
-```
