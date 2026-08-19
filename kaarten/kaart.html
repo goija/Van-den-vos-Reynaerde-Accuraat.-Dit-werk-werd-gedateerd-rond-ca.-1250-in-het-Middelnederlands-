@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historische Kaart: Familie Loncke op Eigen Ontwerp</title>
+    
+    <!-- 1. Laad de Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- 2. Styling van de pagina en de icoontjes -->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0; 
+        }
+        #kaart {
+            height: 100vh;
+            width: 100%;
+            background: #fff; /* Achtergrondkleur achter de afbeelding */
+        }
+        
+        /* Basisstijl voor alle knooppunt-cirkeltjes */
+        .knooppunt-icoon {
+            color: #fff;
+            border: 2px solid #333;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        /* Themakleuren per familietak */
+        .stamlijn { background-color: #8b0000; }     /* Rood */
+        .zeeuwse-tak { background-color: #2c5e3b; }  /* Groen */
+        .maritieme-tak { background-color: #1a4b6e; }/* Blauw */
+        
+        /* Styling van de pop-ups (tekstwolkjes) */
+        .popup-content h3 { margin: 0 0 5px 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        .popup-content p { margin: 5px 0 0 0; font-size: 13px; line-height: 1.4; color: #444; }
+        .popup-content .tak-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: inline-block;}
+    </style>
+</head>
+<body>
+
+    <!-- 3. De container waar de kaart in komt -->
+    <div id="kaart"></div>
+
+    <!-- 4. Laad het Leaflet JavaScript-bestand -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 5. Ons eigen script om de kaart op te bouwen -->
+    <script>
+        // STAP A: Initialiseer de kaart voor een platte afbeelding (L.CRS.Simple)
+        var map = L.map('kaart', {
+            minZoom: -1,
+            maxZoom: 4,
+            crs: L.CRS.Simple // Cruciaal: dit vertelt de kaart dat het geen wereldbol is!
+        });
+
+        // STAP B: Laad jouw eigen tekening in
+        var mijnKaartUrl = 'afbeelding.jpg'; // Zorg dat de naam exact klopt
+        
+        // We definiëren een denkbeeldig raster voor je afbeelding (van 0 tot 1000)
+        var bounds = [[0, 0], [1000, 1000]]; 
+        
+        L.imageOverlay(mijnKaartUrl, bounds, {
+            attribution: 'Ondergrond: Eigen Geometrisch Ontwerp'
+        }).addTo(map);
+
+        // Zorg dat de afbeelding mooi in het midden van het scherm start
+        map.fitBounds(bounds);
+
+        // STAP C: De Familie Data
+        // Let op de 'coords'. Deze kun je straks aanpassen aan de hand van je eigen klik-coördinaten!
+        var familieData = [
+            { id: "1", tak: "Stamlijn", class: "stamlijn", locatie: "Roosendaal", beschrijving: "Oorsprong van de familie.", coords: [500, 500] },
+            { id: "2", tak: "Tak A: Tholen", class: "zeeuwse-tak", locatie: "Tholen", beschrijving: "Adriaen Pietersz & Lijntje Lonke.", coords: [550, 480] },
+            { id: "3", tak: "Tak A: Zierikzee", class: "zeeuwse-tak", locatie: "Zierikzee", beschrijving: "Jacob Lambrechtsz. Loncke", coords: [600, 450] },
+            { id: "6", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Amsterdam", beschrijving: "Admiraal Hendrick Lonck", coords: [700, 500] },
+            { id: "8", tak: "Tak B: Maritiem", class: "maritieme-tak", locatie: "Brazilië", beschrijving: "Verovering Pernambuco", coords: [200, 200] }
+        ];
+
+        // STAP D: Teken de datapunten op de kaart
+        familieData.forEach(function(punt) {
+            var customIcon = L.divIcon({
+                className: '', 
+                html: `<div class="knooppunt-icoon ${punt.class}">${punt.id}</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+
+            var popupHTML = `
+                <div class="popup-content">
+                    <span class="tak-label" style="color: ${punt.class === 'stamlijn' ? '#8b0000' : punt.class === 'zeeuwse-tak' ? '#2c5e3b' : '#1a4b6e'}">
+                        ${punt.tak}
+                    </span>
+                    <h3>${punt.locatie}</h3>
+                    <p>${punt.beschrijving}</p>
+                </div>
+            `;
+
+            L.marker(punt.coords, {icon: customIcon}).bindPopup(popupHTML).addTo(map);
+        });
+
+        // STAP E: HET HULPMIDDEL - Klikken voor coördinaten
+        // Klik ergens op je tekening, en er verschijnt een pop-up met de coördinaten.
+        // Deze coördinaten kun je vervolgens invullen bij 'STAP C'.
+        map.on('click', function(e) {
+            var y = e.latlng.lat.toFixed(1);
+            var x = e.latlng.lng.toFixed(1);
+            var coordinatenTekst = "[" + y + ", " + x + "]";
+
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent("<b>Jouw coördinaten:</b><br>" + coordinatenTekst)
+                .openOn(map);
+
+            console.log("Geklikte coördinaten: " + coordinatenTekst);
+        });
+
+    </script>
+</body>
+</html>
