@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D Psychogeografische Kaart: Vormen & Meedraaiende Labels</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; background-color: #1a1a2e; overflow: hidden; }
+        
+        /* De hele container draait mee */
+        #kaart-container { 
+            height: 100vh; 
+            width: 100%; 
+            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center center;
+        }
+        
+        #kaart { height: 100%; width: 100%; background: #16213e; }
+        
+        /* Rotatie-paneel rechtsboven */
+        #rotatie-paneel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(22, 33, 62, 0.85);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        .paneel-titel {
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: monospace;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            border-bottom: 1px solid #e94560;
+            padding-bottom: 3px;
+        }
+
+        .rotatie-knop {
+            background-color: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .rotatie-knop:hover { background-color: #ff6b81; }
+        .rotatie-knop:active { transform: scale(0.96); }
+        .rotatie-knop.secundair { background-color: #0f3460; }
+        .rotatie-knop.secundair:hover { background-color: #1a4b8c; }
+
+        /* =========================================
+           VORMEN & LABELS (SAMEN ROTEREN)
+           ========================================= */
+        .roterende-groep {
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: 14px 14px; /* Exact het middelpunt van de 28x28 vorm */
+            filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.8)); /* Schaduw voor vorm én label */
+            cursor: grab;
+        }
+        .roterende-groep:active { cursor: grabbing; }
+
+        .basis-vorm {
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-weight: bold; 
+            font-size: 12px;
+            color: #fff; 
+            box-sizing: border-box;
+        }
+
+        /* 1. Vierkant */
+        .vorm-vierkant {
+            width: 28px; height: 28px;
+            border: 2px solid #0f3460;
+        }
+
+        /* 2. Rondje */
+        .vorm-rondje {
+            width: 28px; height: 28px;
+            border: 2px solid #0f3460;
+            border-radius: 50%;
+        }
+
+        /* 3. Driehoek */
+        .vorm-driehoek {
+            width: 30px; height: 30px;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            align-items: flex-end;
+            padding-bottom: 4px;
+            transform: translateX(-1px) translateY(-1px); /* Optische correctie */
+        }
+
+        /* Kleuren per knoop-type */
+        .knoop-nulpunt { background-color: #e94560; } 
+        .knoop-water { background-color: #0f3460; }   
+        .knoop-aarde { background-color: #53354a; }   
+        .knoop-echo { background-color: #e67e22; }    
+        
+        /* Het label dat als een satelliet meedraait */
+        .marker-label {
+            position: absolute;
+            top: 36px; /* Onder de vorm gepositioneerd */
+            left: 14px; /* Gecentreerd onder het middelpunt */
+            transform: translateX(-50%);
+            background-color: rgba(15, 52, 96, 0.95);
+            color: #ffffff;
+            border: 1px solid #e94560;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none; /* Klikken gaat door het label heen naar de vorm */
+        }
+
+        /* Spinnen Animatie */
+        .spinnen {
+            animation: spinnen-animatie 4s linear infinite !important;
+        }
+        @keyframes spinnen-animatie {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Leaflet Popups */
+        .leaflet-popup-content-wrapper { background-color: #ffffff; color: #333; }
+        .popup-content h3 { margin: 0 0 5px 0; color: #111; border-bottom: 1px solid #ccc; padding-bottom: 3px; font-size: 15px;}
+        .popup-content p { margin: 5px 0 0 0; font-size: 13px; line-height: 1.5; color: #333; }
+        .data-tag { font-family: monospace; font-size: 11px; background: #f0f0f0; padding: 2px 4px; border-radius: 3px; color: #e94560; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+    <div id="rotatie-paneel">
+        <div class="paneel-titel">Kaart Rotatie</div>
+        <button class="rotatie-knop" onclick="draaiKaart(0)">0° (Reset)</button>
+        <button class="rotatie-knop" onclick="draaiKaart(91)">Draai 91°</button>
+        <button class="rotatie-knop" onclick="draaiKaart(181)">Draai 181°</button>
+        <button class="rotatie-knop" onclick="draaiKaart(234)">Draai 234°</button>
+
+        <div class="paneel-titel" style="margin-top: 8px;">Vormen & Labels</div>
+        <button class="rotatie-knop secundair" onclick="draaiVormen(0)">0° (Reset)</button>
+        <button class="rotatie-knop secundair" onclick="draaiVormen(45)">Draai 45°</button>
+        <button class="rotatie-knop secundair" onclick="draaiVormen(90)">Draai 90°</button>
+        <button class="rotatie-knop secundair" onclick="toggleSpinnenVormen()">Continu Spinnen</button>
+        <button class="rotatie-knop secundair" onclick="toggleTegenRotatie()">Rechtop (Tegen-rotatie): <span id="tegenrotatie-status">UIT</span></button>
+    </div>
+
+    <div id="kaart-container">
+        <div id="kaart"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        window.huidigeKaartRotatie = 0;
+        window.huidigeVormRotatie = 0;
+        window.tegenRotatieActief = false;
+        window.isSpinnen = false;
+
+        // Draai de hele kaart-container
+        function draaiKaart(graden) {
+            window.huidigeKaartRotatie = graden;
+            document.getElementById('kaart-container').style.transform = `rotate(${graden}deg)`;
+            
+            // Als tegen-rotatie aan staat, roteren we de vormen in tegengestelde richting zodat ze rechtop blijven
+            if (window.tegenRotatieActief && !window.isSpinnen) {
+                draaiVormen(-graden);
+            }
+        }
+
+        // Draai de vormen EN de labels gezamenlijk
+        function draaiVormen(graden) {
+            window.huidigeVormRotatie = graden;
+            const elementen = document.querySelectorAll('.roterende-groep');
+            elementen.forEach(el => {
+                el.classList.remove('spinnen');
+                el.style.transform = `rotate(${graden}deg)`;
+            });
+        }
+
+        // Laat de vormen en labels continu spinnen als planeten
+        function toggleSpinnenVormen() {
+            window.isSpinnen = !window.isSpinnen;
+            const elementen = document.querySelectorAll('.roterende-groep');
+            elementen.forEach(el => {
+                if (window.isSpinnen) {
+                    el.classList.add('spinnen');
+                } else {
+                    el.classList.remove('spinnen');
+                    el.style.transform = `rotate(${window.huidigeVormRotatie}deg)`;
+                }
+            });
+        }
+
+        function toggleTegenRotatie() {
+            window.tegenRotatieActief = !window.tegenRotatieActief;
+            document.getElementById('tegenrotatie-status').innerText = window.tegenRotatieActief ? 'AAN' : 'UIT';
+            
+            if (window.tegenRotatieActief) {
+                draaiVormen(-window.huidigeKaartRotatie);
+            } else {
+                draaiVormen(0);
+            }
+        }
+
+        // ============================================================================
+        // PATCH: Quaternion Mapping voor Leaflet's Draggable class
+        // Correctie voor muisbeweging op een geroteerd vlak
+        // ============================================================================
+        L.Draggable.prototype._onMove = function (e) {
+            if (e._simulated || !this._enabled) { return; }
+
+            if (e.touches && e.touches.length > 1) {
+                this._moved = true;
+                return;
+            }
+
+            var first = (e.touches && e.touches.length === 1 ? e.touches[0] : e);
+            var rawOffset = new L.Point(first.clientX, first.clientY).subtract(this._startPoint);
+
+            if (!rawOffset.x && !rawOffset.y) { return; }
+            if (Math.abs(rawOffset.x) + Math.abs(rawOffset.y) < this.options.clickTolerance) { return; }
+
+            var rad = -(window.huidigeKaartRotatie || 0) * (Math.PI / 180);
+            
+            var w = Math.cos(rad / 2);
+            var z = Math.sin(rad / 2);
+            
+            var qNx = (w*w - z*z)*rawOffset.x - (2*w*z)*rawOffset.y;
+            var qNy = (2*w*z)*rawOffset.x + (w*w - z*z)*rawOffset.y;
+            
+            var offset = new L.Point(qNx, qNy);
+
+            L.DomEvent.preventDefault(e);
+
+            if (!this._moved) {
+                this.fire('dragstart');
+                this._moved = true;
+                this._startPos = L.DomUtil.getPosition(this._element).subtract(offset);
+                L.DomUtil.addClass(document.body, 'leaflet-dragging');
+                this._lastTarget = e.target || e.srcElement;
+                if (window.SVGElementInstance && this._lastTarget instanceof SVGElementInstance) {
+                    this._lastTarget = this._lastTarget.correspondingUseElement;
+                }
+                L.DomUtil.addClass(this._lastTarget, 'leaflet-drag-target');
+            }
+
+            this._newPos = this._startPos.add(offset);
+            this._moving = true;
+
+            L.Util.cancelAnimFrame(this._animRequest);
+            this._lastEvent = e;
+            this._animRequest = L.Util.requestAnimFrame(this._updatePosition, this, true);
+        };
+        // ============================================================================
+
+        // Data inclusief de nieuwe 'vorm' parameter
+        const projectData = [
+            { "fase": 0, "vorm": "vierkant", "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Oude Kerk Amsterdam", "type": "knoop-nulpunt", "beschrijving": "<b>[FASE 0]</b><br>Zerk Hendrik Lonck." },
+            { "fase": 1, "vorm": "rondje",   "iteratie": -50, "congruentie_mod_21": 13, "locatie": "Het Zeeuwse Estuarium", "type": "knoop-water", "beschrijving": "<b>[FASE 1]</b><br>De Delta & expansie." },
+            { "fase": 2, "vorm": "driehoek", "iteratie": -25, "congruentie_mod_21": 17, "locatie": "Roosendaal", "type": "knoop-aarde", "beschrijving": "<b>[FASE 2]</b><br>Geologische Klei." },
+            { "fase": 3, "vorm": "rondje",   "iteratie": -74, "congruentie_mod_21": 10, "locatie": "Tamale, Ghana", "type": "knoop-echo", "beschrijving": "<b>[FASE 3]</b><br>Trans-Atlantische Echo." },
+            { "fase": 4, "vorm": "vierkant", "iteratie": -17, "congruentie_mod_21": 4, "locatie": "Oude Kerk Amsterdam", "type": "knoop-nulpunt", "beschrijving": "<b>[SLUITING]</b>" }
+        ];
+
+        const radius = 45; 
+        const kolommen = 13;
+        const rijen = 18;
+
+        function genereerHexRaster(cols, rows, r) {
+            const canvas = document.createElement('canvas');
+            const hBreedte = Math.sqrt(3) * r;
+            const hHoogte = 2 * r;
+            canvas.width = cols * hBreedte + (hBreedte / 2);
+            canvas.height = rows * (hHoogte * 0.75) + (hHoogte / 4);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#16213e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Bloemgeometrie
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 2;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; 
+            ctx.lineWidth = 3;
+            for(let i=0; i<4; i++) {
+                ctx.beginPath();
+                ctx.arc(cx + (i<2 ? 0 : (i==2?100:-100)), cy + (i<2 ? (i==0?-100:100) : 0), 100, 0, Math.PI*2);
+                ctx.stroke();
+            }
+
+            // Raster lijnen & coördinaten
+            ctx.strokeStyle = 'rgba(15, 52, 96, 0.7)'; 
+            for (let rij = 0; rij < rows; rij++) {
+                for (let kol = 0; kol < cols; kol++) {
+                    let x = kol * hBreedte + (rij % 2 === 1 ? hBreedte / 2 : 0) + hBreedte / 2;
+                    let y = rij * (hHoogte * 0.75) + hHoogte / 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        let hoek = (Math.PI / 180) * (60 * i - 30);
+                        ctx.lineTo(x + r * Math.cos(hoek), y + r * Math.sin(hoek));
+                    }
+                    ctx.closePath(); ctx.stroke();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '10px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.globalAlpha = 0.4;
+                    ctx.fillText(`${kol},${rij}`, x, y);
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+            return { imgData: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height };
+        }
+
+        const raster = genereerHexRaster(kolommen, rijen, radius);
+        var map = L.map('kaart', { minZoom: -1, maxZoom: 3, crs: L.CRS.Simple });
+        var bounds = [[0, 0], [raster.h, raster.w]]; 
+        L.imageOverlay(raster.imgData, bounds).addTo(map);
+        map.fitBounds(bounds);
+
+        function getHexCenterCoords(kolom, rij) {
+            const hB = Math.sqrt(3) * radius;
+            const hH = 2 * radius;
+            return [raster.h - (rij * (hH * 0.75) + hH / 2), kolom * hB + (rij % 2 === 1 ? hB / 2 : 0) + hB / 2];
+        }
+
+        // Plaats versleepbare markers
+        projectData.forEach(function(punt) {
+            let coords = getHexCenterCoords(punt.congruentie_mod_21 % 13, (punt.fase * 3) % 18);
+            
+            // Icon met de Roterende Groep (Vorm + Label)
+            var customIcon = L.divIcon({ 
+                className: '', 
+                html: `
+                    <div class="roterende-groep">
+                        <div class="basis-vorm vorm-${punt.vorm} ${punt.type}">${punt.fase}</div>
+                        <div class="marker-label">Fase ${punt.fase}: ${punt.locatie}</div>
+                    </div>
+                `, 
+                iconSize: [28, 28], 
+                iconAnchor: [14, 14],
+                popupAnchor: [0, -14]
+            });
+
+            var marker = L.marker(coords, { icon: customIcon, draggable: true }).addTo(map);
+
+            marker.bindPopup(`
+                <div class="popup-content">
+                    <h3>${punt.locatie}</h3>
+                    <p>${punt.beschrijving}</p>
+                    <p><span class="data-tag" id="coord-${punt.fase}">Positie: [${punt.congruentie_mod_21 % 13}, ${(punt.fase * 3) % 18}]</span></p>
+                </div>
+            `);
+
+            marker.on('dragend', function(event) {
+                var position = marker.getLatLng();
+                console.log(`Vorm ${punt.fase} verplaatst naar Y: ${position.lat.toFixed(1)}, X: ${position.lng.toFixed(1)}`);
+            });
+        });
+    </script>
+</body>
+</html>
