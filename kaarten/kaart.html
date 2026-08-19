@@ -1,12 +1,3 @@
-Omdat ik als AI geen fysiek `.png` of `.jpg` bestand in jouw map kan opslaan (wat de eerdere fout met `afbeelding.png` veroorzaakte), heb ik een veel robuustere, wiskundige oplossing bedacht.
-
-We laten JavaScript het 18x13 hexacom raster (hexagon grid) **live berekenen en tekenen**. Het script genereert razendsnel een onzichtbaar `canvas`, tekent daar de 18x13 honingraat op (inclusief lichte coördinaten in elk vakje zodat je makkelijk kunt navigeren), en zet dit direct om naar een ingebouwde PNG-afbeelding (`afbeelding_png_data`).
-
-Hierdoor heb je **geen losse afbeeldingsbestanden meer nodig** en kan de code nooit meer stuklopen op een ontbrekend bestand.
-
-Kopieer deze volledige code en vervang de inhoud van je huidige `.html` bestand. Sla het op en open het in je browser:
-
-```html
 <!DOCTYPE html>
 <html lang="nl">
 <head>
